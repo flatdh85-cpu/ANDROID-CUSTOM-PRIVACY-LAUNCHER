@@ -13,3 +13,7 @@ LocalSend est autonome. Aucun transfert de galerie ne tourne dans Minimal OS. Le
 L’accès spécial aux notifications est facultatif et distinct de l’accessibilité Panic. Les notifications des trois applications sont gardées uniquement en mémoire pour les pastilles et la liste de l’accueil. Aucune notification n’est copiée vers un pair.
 
 Le debloat constructeur reste en simulation. Les permissions larges de lecture média, d’inventaire de packages et d’accessibilité nécessitent une revue des règles de distribution avant une éventuelle publication Play Store. Les APK de ce dépôt sont des builds debug destinés aux essais.
+
+V9 étend Panic aux fichiers du dossier public Téléchargements principal ; l’accès spécial aux fichiers sur Android 11+ reste manuel et son usage est limité dans le code. L’effacement du dossier ne supprime pas nécessairement les anciennes entrées du gestionnaire de téléchargement d’autres applications. Voir le périmètre précis dans [Panic](PANIC.md).
+
+L’assistant d’installation V9 utilise uniquement des APK officielles épinglées, dont le fichier, le package et le certificat sont contrôlés avant le passage à l’installateur Android. Pas d’installation silencieuse ni d’auto-validation des permissions. Aucun APK tiers n’est redistribué. L’autorisation d’installation de paquets et celle d’accès à tous les fichiers impliquent une revue des règles de distribution avant toute publication Play Store.

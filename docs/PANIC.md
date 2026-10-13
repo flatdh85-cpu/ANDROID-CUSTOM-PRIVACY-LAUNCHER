@@ -25,3 +25,11 @@ Un dialogue constructeur différent, une fenêtre protégée contre l’accessib
 - Minimal OS en dernier, avec son stockage privé et ses anciennes copies V3–V7.
 
 Il n’y a aucun effacement sécurisé du support, aucune suppression des autres applications système ou utilisateur et aucun reset. Interrompre/refuser Panic peut laisser une suppression partielle ; rouvrir la procédure refait l’inventaire actuel. Les copies déjà présentes sur un autre téléphone ne sont pas touchées.
+
+## V9 : contenu de Téléchargements
+
+Panic efface aussi **tout le contenu du dossier public Download/Téléchargements du stockage principal**, après la galerie et avant Minimal OS : APK, ZIP, PDF, documents, fichiers cachés et sous-dossiers. Le dossier racine est conservé. Il ne parcourt pas les autres dossiers du gestionnaire de fichiers, ni les téléchargements enregistrés ailleurs ou sur une carte SD. Les liens symboliques ne sont pas suivis.
+
+Sur Android 6–10, l’autorisation de stockage est utilisée. Sur Android 11+, ouvrir Panic puis **Autoriser l’effacement des téléchargements** et accorder une fois **Accès à tous les fichiers** à Minimal OS dans Android. Cette permission n’est pas auto-accordée ; son absence est détectée avant toute désinstallation. Bien qu’elle soit large, le code ne supprime que le dossier Téléchargements fixé ci-dessus et les médias du périmètre galerie.
+
+Chaque suppression est vérifiée, puis le dossier est relu. En cas de refus, d’accès perdu ou de fichiers restants, Panic s’arrête avec un message et conserve Minimal OS. Un téléchargement tiers encore en cours peut recréer un fichier après le contrôle. Les entrées d’historique du gestionnaire Android appartenant à d’autres applications peuvent rester visibles, même si leur fichier a été supprimé ; leur historique privé n’est pas accessible à Minimal OS.

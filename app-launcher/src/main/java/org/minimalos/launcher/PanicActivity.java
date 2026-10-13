@@ -41,13 +41,13 @@ public final class PanicActivity extends Activity {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(Ui.dp(this, 20), Ui.dp(this, 20), Ui.dp(this, 20), Ui.dp(this, 20));
-        status = Ui.text(this, "Panic supprime LocalSend, BitChat et SimpleX si elles sont installées, puis les photos et vidéos de la galerie et enfin Minimal OS. Aucune copie, aucun transfert, aucune attente d’un autre téléphone. Android demande ses confirmations. Les autres applications et le launcher constructeur sont conservés.", 17, -1);
+        status = Ui.text(this, "Panic supprime LocalSend, BitChat et SimpleX si elles sont installées, puis les photos et vidéos de la galerie, tout le dossier Téléchargements du stockage principal (APK, documents et sous-dossiers), et enfin Minimal OS. Aucune copie, aucun transfert, aucune attente d’un autre téléphone. Android demande ses confirmations. Les autres applications et le launcher constructeur sont conservés.", 17, -1);
         root.addView(status, Ui.matchWrap());
         start = Ui.button(this, "Commencer Panic");
         start.setOnClickListener(view -> new AlertDialog.Builder(this)
                 .setTitle("Confirmer Panic")
                 .setMessage("Supprimer les applications suivantes et leurs données locales :\n" + android.text.TextUtils.join("\n", findApps())
-                        + "\n\nPuis effacer TOUTES les photos et vidéos accessibles de la galerie, y compris sur la carte SD, et désinstaller Minimal OS avec ses anciennes copies privées. Aucune sauvegarde ne sera lancée. Les copies distantes ne sont pas effacées.")
+                        + "\n\nPuis effacer TOUTES les photos et vidéos accessibles de la galerie, y compris sur la carte SD, effacer tout le dossier Téléchargements du stockage principal (APK, documents et sous-dossiers), et désinstaller Minimal OS avec ses anciennes copies privées. Aucune sauvegarde ne sera lancée. Les copies distantes ne sont pas effacées.")
                 .setNegativeButton("Annuler", null)
                 .setPositiveButton("Supprimer", (dialog, which) -> {
                     begin();
@@ -55,12 +55,15 @@ public final class PanicActivity extends Activity {
         root.addView(start, Ui.matchWrap());
         Button automatic = Ui.button(this, "Configurer l’auto-validation Panic");
         automatic.setOnClickListener(view -> new AlertDialog.Builder(this).setTitle("Autoriser Panic automatique ?")
-                .setMessage("Après activation du service d’accessibilité Android, chaque appui long sur Panic lancera immédiatement la suppression de LocalSend, BitChat, SimpleX, de toute la galerie accessible puis de Minimal OS, sans sauvegarde. Le service tentera de valider leurs dialogues système. Les autres applications sont conservées.\n\nLe service peut lire les fenêtres nécessaires aux confirmations ; aucun contenu n’est enregistré ou transmis. Les fenêtres peuvent apparaître brièvement. Un dialogue inconnu restera à valider manuellement. Cette autorisation Android doit être accordée par vous.")
+                .setMessage("Après activation du service d’accessibilité Android, chaque appui long sur Panic lancera immédiatement la suppression de LocalSend, BitChat, SimpleX, de toute la galerie accessible, de tout le dossier Téléchargements du stockage principal, puis de Minimal OS, sans sauvegarde. Le service tentera de valider leurs dialogues système. Les autres applications sont conservées.\n\nLe service peut lire les fenêtres nécessaires aux confirmations ; aucun contenu n’est enregistré ou transmis. Les fenêtres peuvent apparaître brièvement. Un dialogue inconnu restera à valider manuellement. Cette autorisation Android doit être accordée par vous.")
                 .setNegativeButton("Annuler", null).setPositiveButton("Autoriser et ouvrir Android", (dialog, which) -> {
                     getSharedPreferences("panic", MODE_PRIVATE).edit().putBoolean("automatic", true).apply();
                     startActivity(new Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS));
                 }).show());
         root.addView(automatic, Ui.matchWrap());
+        Button files = Ui.button(this, "Autoriser l’effacement des téléchargements");
+        files.setOnClickListener(view -> downloadsGranted());
+        root.addView(files, Ui.matchWrap());
         Button disable = Ui.button(this, "Désactiver l’auto-validation");
         disable.setOnClickListener(view -> {
             getSharedPreferences("panic", MODE_PRIVATE).edit().putBoolean("automatic", false).apply();
@@ -82,8 +85,9 @@ public final class PanicActivity extends Activity {
 
     private void begin() {
         if (!hasOtherHome()) { status.setText("Panic bloqué : aucun autre launcher HOME actif détecté."); return; }
-        if (!storageGranted()) return;
+        if (!downloadsGranted() || !storageGranted()) return;
         start.setEnabled(false);
+        AppInstallerActivity.cancelPending(this);
         BootReceiver.retireTransfers(this);
         uninstallQueue.clear(); uninstallQueue.addAll(findApps()); nextUninstall();
     }
@@ -189,11 +193,44 @@ public final class PanicActivity extends Activity {
         new Thread(() -> {
             try {
                 if (!GalleryAccess.galleryUris(this).isEmpty()) throw new IllegalStateException("Des médias restent dans la galerie. Relancez Panic pour les supprimer.");
-                runOnUiThread(() -> { if (!aborted) offerOwnUninstall(); });
+                runOnUiThread(() -> { if (!aborted) deleteDownloads(); });
             } catch (Exception failure) {
                 runOnUiThread(() -> status.setText("Panic arrêté : " + failure.getMessage()));
             }
         }, "minimal-os-verify-delete").start();
+    }
+
+    private boolean downloadsGranted() {
+        if (Build.VERSION.SDK_INT >= 30 && !android.os.Environment.isExternalStorageManager()) {
+            status.setText("Activez une fois l’accès à tous les fichiers pour Minimal OS. Panic n’effacera que Téléchargements et la galerie. Revenez ensuite relancer Panic.");
+            try {
+                startActivity(new Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                        Uri.parse("package:" + getPackageName())));
+            } catch (RuntimeException missing) {
+                try { startActivity(new Intent(android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)); }
+                catch (RuntimeException unavailable) { status.setText("Accès aux fichiers indisponible sur cet appareil : Panic ne peut pas effacer les téléchargements."); }
+            }
+            return false;
+        }
+        if (Build.VERSION.SDK_INT < 30 && !storageGranted()) return false;
+        status.setText("Accès aux téléchargements accordé."); return true;
+    }
+
+    private void deleteDownloads() {
+        status.setText("Suppression des APK et de tous les fichiers de Téléchargements…");
+        new Thread(() -> {
+            try {
+                if (!android.os.Environment.MEDIA_MOUNTED.equals(android.os.Environment.getExternalStorageState()))
+                    throw new java.io.IOException("Stockage principal indisponible");
+                java.io.File directory = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS);
+                // Android aliases /sdcard to the real volume. Resolve that parent, but reject a redirected Download itself.
+                directory = new java.io.File(directory.getParentFile().getCanonicalFile(), directory.getName());
+                DownloadCleaner.clear(directory, () -> aborted);
+                runOnUiThread(() -> { if (!aborted) offerOwnUninstall(); });
+            } catch (Exception failure) {
+                runOnUiThread(() -> { if (!aborted) status.setText("Panic arrêté : téléchargements non entièrement effacés. " + failure.getMessage()); });
+            }
+        }, "panic-downloads").start();
     }
 
     private void offerOwnUninstall() {
@@ -201,7 +238,7 @@ public final class PanicActivity extends Activity {
             status.setText("Panic arrêté : aucun autre launcher HOME actif détecté. Réactivez le launcher constructeur avant de désinstaller Minimal OS.");
             return;
         }
-        status.setText("Les médias accessibles de la galerie ont été supprimés. Les anciennes copies privées seront supprimées avec Minimal OS. Aucune sauvegarde n’a été effectuée.");
+        status.setText("La galerie accessible et le contenu du dossier Téléchargements ont été supprimés. Les anciennes copies privées seront supprimées avec Minimal OS. Aucune sauvegarde n’a été effectuée.");
         if (PanicAutomation.enabled(this)) { removeSelf(); return; }
         new AlertDialog.Builder(this).setTitle("Dernière étape")
                 .setMessage("Revenir au launcher constructeur et désinstaller Minimal OS ?")
@@ -211,6 +248,7 @@ public final class PanicActivity extends Activity {
 
     private void removeSelf() {
         if (!hasOtherHome()) { status.setText("Launcher constructeur indisponible : suppression interrompue."); return; }
+        AppInstallerActivity.cancelPending(this);
         BootReceiver.retireTransfers(this);
         Intent home = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME);
         android.content.pm.ResolveInfo chosen = null;

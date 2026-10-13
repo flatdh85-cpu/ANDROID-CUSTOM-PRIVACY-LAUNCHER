@@ -241,3 +241,11 @@ Les dernières demandes explicites remplacent les points incompatibles précéde
 Panic supprime les trois applications ciblées présentes, même préexistantes, la galerie accessible et Minimal OS en dernier, sans copie ni sonde. L’utilisateur demande l’auto-acceptation : service d’accessibilité facultatif après consentement et activation Android, limité aux dialogues attendus pendant Panic. Aucun clic générique ni contournement de protection système. Conserver les autres applications et le HOME constructeur ; fenêtres inconnues manuelles, aucune promesse de suppression silencieuse garantie.
 
 Références : `docs/ARCHITECTURE.md`, `docs/PANIC.md`, `docs/COMPATIBILITY.md`, `docs/TEST_PLAN.md`. Distinguer tests cloud et essais Android 6/S22/Huawei.
+
+## 14. Demandes utilisateur V9
+
+Étendre Panic au contenu du dossier public Téléchargements principal, APK/documents/sous-dossiers compris, sans élargir arbitrairement à tous les dossiers du stockage. Respecter les permissions Android et arrêter avec un état explicite si l’effacement échoue. L’historique privé du gestionnaire de téléchargement n’est pas un fichier accessible.
+
+Proposer au premier lancement un assistant d’installation de LocalSend, BitChat et SimpleX, avec APK officielles épinglées et vérifiées (SDK/ABI/hash/certificat), installateur Android et confirmations utilisateur. Applications déjà présentes ignorées. Android 6 reste pris en charge par le launcher ; seules les versions tierces compatibles sont proposées.
+
+Au premier lancement, proposer les permissions de localisation, galerie et fichiers de Minimal OS ; afficher les refus et permettre une reprise. La position n’est pas lue/transmise. L’utilisateur souhaite conserver la configuration Panic séparée et inchangée. Ces autorisations ne valent pas pour les applications tierces.

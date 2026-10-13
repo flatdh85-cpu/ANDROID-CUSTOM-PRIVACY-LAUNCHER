@@ -2,6 +2,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" tools:ignore="ScopedStorage" />
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
@@ -35,6 +40,7 @@
         <activity
             android:name=".DiagnosticsActivity"
             android:exported="false" />
+        <activity android:name=".AppInstallerActivity" android:exported="false" />
         <activity android:name=".PanicActivity" android:configChanges="orientation|screenSize" android:exported="false" />
         <activity android:name=".ReceivedMediaActivity" android:exported="false" />
         <service android:name=".PanicAccessibilityService" android:label="Panic — auto-validation"

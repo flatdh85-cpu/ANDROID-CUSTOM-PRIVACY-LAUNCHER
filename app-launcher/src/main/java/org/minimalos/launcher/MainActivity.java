@@ -45,6 +45,10 @@ public final class MainActivity extends Activity {
         getWindow().setStatusBarColor(Ui.color(this, R.color.background));
         BootReceiver.retireTransfers(this);
         setContentView(buildContent());
+        if (state == null && !getSharedPreferences("setup", MODE_PRIVATE).getBoolean("shown-v9", false)) {
+            getSharedPreferences("setup", MODE_PRIVATE).edit().putBoolean("shown-v9", true).apply();
+            startActivity(new Intent(this, AppInstallerActivity.class));
+        }
     }
 
     @Override protected void onResume() {
@@ -136,6 +140,10 @@ public final class MainActivity extends Activity {
         });
         root.addView(internetRow, Ui.matchWrap());
 
+        Button installer = Ui.button(this, "Applications et autorisations");
+        installer.setOnClickListener(view -> startActivity(new Intent(this, AppInstallerActivity.class)));
+        root.addView(installer, Ui.matchWrap());
+
         Button diagnostics = Ui.button(this, getString(R.string.diagnostics));
         diagnostics.setOnClickListener(view -> startActivity(new Intent(this, DiagnosticsActivity.class)));
         LinearLayout.LayoutParams diagParams = Ui.matchWrap();
@@ -153,7 +161,7 @@ public final class MainActivity extends Activity {
         panic.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         panic.setOnClickListener(view -> new AlertDialog.Builder(this)
                 .setTitle(R.string.panic_title)
-                .setMessage(PanicAutomation.enabled(this) ? "L’auto-validation est activée. Maintenez Panic pour supprimer les trois applications, la galerie et Minimal OS sans sauvegarde." : "Maintenez le bouton pour ouvrir Panic. Vous pourrez y configurer l’auto-validation des confirmations Android.")
+                .setMessage(PanicAutomation.enabled(this) ? "L’auto-validation est activée. Maintenez Panic pour supprimer les trois applications, la galerie, les téléchargements et Minimal OS sans sauvegarde." : "Maintenez le bouton pour ouvrir Panic. Vous pourrez y configurer l’auto-validation des confirmations Android.")
                 .setPositiveButton(R.string.understood, null)
                 .show());
         panic.setOnTouchListener((view, event) -> {

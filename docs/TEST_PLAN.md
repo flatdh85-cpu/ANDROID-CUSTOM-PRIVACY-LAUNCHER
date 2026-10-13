@@ -19,3 +19,13 @@ Commande : `./gradlew test testDebugUnitTest lintDebug assembleDebug`.
 6. Accessibilité Panic activée/désactivée sur Android 6, S22 et Huawei : dialogues FR/EN, attente manuelle sur fenêtres inconnues/protégées, refus de clic et expiration après 20 secondes ; aucun clic hors Panic ou sur une autre application. Auto-désinstallation en dernier. Les tests JVM de texte ne remplacent pas ce test système.
 7. Arrêt de processus, rotation, refus d’uninstall et sortie de Panic : état partiel visible, reprise depuis l’inventaire actuel. Vérifier appels, SMS, clavier et launcher constructeur après.
 8. LocalSend autonome : essai d’un fichier dans chaque sens sur un groupe Wi-Fi Direct Android sans infrastructure/hotspot. Ce test vérifie LocalSend et l’OS ; aucune planification 30 min ni compatibilité radio universelle n’est annoncée par Minimal OS.
+
+## V9
+
+Tests JVM supplémentaires : suppression d’APK/documents cachés/sous-dossiers avec préservation du dossier racine et des fichiers extérieurs ; liens symboliques non suivis, racine redirigée refusée, annulation sans suppression. Catalogue APK : Android 6 limité à LocalSend, choix d’ABI selon l’ordre de l’appareil, ABI non proposée rejetée, intégrité et sources officielles épinglées.
+
+Essais physiques supplémentaires requis : permission de stockage Android 6 et accès spécial aux fichiers Android 11+, refus/révocation, dossier vide/manquant/non accessible, suppression partielle, téléchargements tiers concurrents, APK/ZIP/PDF, liens et fichiers extérieurs conservés. Vérifier qu’un échec d’effacement des téléchargements empêche l’auto-désinstallation.
+
+Installer les applications : premier lancement, passage en arrière-plan, interruption de téléchargement/processus, stockage plein, source refusée, refus de chaque installation, reprise, APK altérée/signature incorrecte, applications déjà présentes, Android 6 et ARMv7/ARM64. Les signatures/minima des APK officielles ont été vérifiés dans le cloud ; aucune installation sur téléphone physique n’y a été réalisée.
+
+Premier lancement : permissions runtime sur Android 6/13/14+, localisation approximative, médias sélectionnés seulement, accès spécial aux fichiers Android 11+, refus et refus permanent, retour des réglages, relance sans nouvelle sollicitation automatique. Vérifier que l’accueil reste disponible et que l’accessibilité Panic n’est jamais activée par cet assistant.

@@ -16,3 +16,7 @@
 ## Hors périmètre actuel
 
 Pas de transfert périodique, de Bluetooth LocalSend ni de reconnexion Wi-Fi Direct intégrée. Les projets caméra/coffre séparés, profils de debloat privilégiés et dépôt Synology restent distincts.
+
+## V9
+
+Assistant d’installation d’APK officielles et extension Panic au dossier Téléchargements principal ajoutés. Vérifier sur Android 6 et versions récentes les permissions, confirmations, interruptions et reprises décrites dans le plan de test.

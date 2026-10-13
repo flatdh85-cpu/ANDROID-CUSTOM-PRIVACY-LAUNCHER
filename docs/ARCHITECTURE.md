@@ -11,3 +11,9 @@ La dernière demande utilisateur remplace les anciennes exigences incompatibles 
 - Les modules d’audit/profils/journal/debloat/recovery restent en simulation. `core-replication` et `GalleryRepository` restent pour la lecture des copies historiques ; leurs transports ne sont plus accessibles depuis l’APK. Les anciens services/écrans radio sont supprimés.
 
 LocalSend est lancé comme application externe. Minimal OS ne l’installe pas, ne le configure pas et ne lui impose pas de transferts. Voir [compatibilité](COMPATIBILITY.md), [Panic](PANIC.md), [LocalSend](PHONE_PAIRING.md) et [tests](TEST_PLAN.md).
+
+## V9 : téléchargements et assistant d’installation
+
+`DownloadCleaner` supprime récursivement uniquement les enfants du dossier public Téléchargements principal, sans suivre les liens symboliques. `PanicActivity` contrôle les permissions avant les désinstallations, efface les téléchargements après la galerie, vérifie les résultats et ne passe au retrait de Minimal OS qu’en cas de succès. Android 11+ nécessite l’accès spécial MANAGE_EXTERNAL_STORAGE accordé par l’utilisateur ; Android 6–10 conserve les permissions stockage.
+
+`AppInstallCatalog` épingle six artefacts officiels avec versions, ABI, SDK, SHA-256 et empreintes de certificat. `AppInstallerActivity` enchaîne DownloadManager, contrôle de l’APK en arrière-plan, puis installateur système quand l’activité est visible. Une seule APK est en cours ; identifiant de téléchargement/état d’installation persistés. Applications déjà présentes ignorées, refus/échec visibles. INTERNET est réintroduit uniquement pour ce parcours de téléchargement, REQUEST_INSTALL_PACKAGES pour l’installateur officiel. Aucun transfert de galerie ajouté. [Détails](INSTALLATION.md).
