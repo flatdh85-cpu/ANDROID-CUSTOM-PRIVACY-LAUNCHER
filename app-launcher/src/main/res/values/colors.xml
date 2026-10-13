@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="background">#FFF7F2E8</color>
-    <color name="surface">#FFFFFFFF</color>
-    <color name="ink">#FF15202B</color>
-    <color name="muted">#FF53606D</color>
-    <color name="accent">#FF006B5F</color>
-    <color name="danger">#FF9B1C1C</color>
-    <color name="outline">#FFB8B1A5</color>
+    <color name="background">#FF000000</color>
+    <color name="surface">#FF101010</color>
+    <color name="ink">#FFFFFFFF</color>
+    <color name="muted">#FFBDBDBD</color>
+    <color name="accent">#FFFFFFFF</color>
+    <color name="danger">#FFFFFFFF</color>
+    <color name="outline">#FF666666</color>
 </resources>

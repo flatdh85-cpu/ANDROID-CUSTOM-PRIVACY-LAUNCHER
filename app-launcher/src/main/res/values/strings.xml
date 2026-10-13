@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Minimal OS</string>
-    <string name="home_subtitle">Communication essentielle</string>
+    <string name="home_subtitle">Communication essentielle · Phase 2 audit</string>
     <string name="not_installed">Non installée</string>
     <string name="disabled">Désactivée</string>
     <string name="available">Disponible</string>
@@ -15,13 +15,38 @@
     <string name="wifi">Wi-Fi</string>
     <string name="bluetooth">Bluetooth</string>
     <string name="location">Localisation</string>
+    <string name="photo">Photo</string>
+    <string name="video">Vidéo</string>
+    <string name="gallery">Galerie</string>
+    <string name="media_unavailable">Aucune application compatible pour %1$s.</string>
     <string name="battery_format">Batterie %1$d%%</string>
+    <string name="battery_unknown">Batterie inconnue</string>
     <string name="network_connected">Réseau connecté</string>
     <string name="network_disconnected">Réseau indisponible</string>
     <string name="system_status_format">%1$s · %2$s</string>
     <string name="diagnostics_title">Diagnostic de l’appareil</string>
     <string name="device_format">Fabricant : %1$s\nModèle : %2$s\nAndroid API : %3$d\nVersion constructeur : %4$s\nFingerprint : %5$s</string>
     <string name="apps_status_title">Applications reconnues</string>
-    <string name="audit_notice">Phase 1 — mode audit uniquement. Aucun package n’est désactivé ou désinstallé.</string>
+    <string name="inventory_pending">Inventaire en cours…</string>
+    <plurals name="inventory_visible">
+        <item quantity="one">%d package visible</item>
+        <item quantity="other">%d packages visibles</item>
+    </plurals>
+    <plurals name="inventory_system">
+        <item quantity="one">%d package système</item>
+        <item quantity="other">%d packages système</item>
+    </plurals>
+    <string name="inventory_format">Inventaire : %1$s · %2$s</string>
+    <string name="profile_format">Profil : %1$s</string>
+    <string name="app_status_format">• %1$s — %2$s</string>
+    <string name="audit_notice">Phase 2 — simulation uniquement. Aucun package n’est désactivé ou désinstallé.</string>
+    <string name="export_journal">Exporter le journal d’audit</string>
+    <string name="export_journal_title">Journal Minimal OS</string>
+    <string name="journal_empty">Le journal d’audit est vide.</string>
+    <string name="audit_failed">Audit impossible : %1$s</string>
+    <string name="panic_preflight">Panic — préflight</string>
+    <string name="panic_tap_message">Maintenez ce bouton pour vérifier les prérequis. La Phase 2 ne supprime aucune application.</string>
+    <string name="panic_title">Préflight Panic</string>
+    <string name="understood">Compris</string>
     <string name="back">Retour</string>
 </resources>

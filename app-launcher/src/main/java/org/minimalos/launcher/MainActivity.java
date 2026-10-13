@@ -2,16 +2,17 @@ package org.minimalos.launcher;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.BatteryManager;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.provider.MediaStore;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -28,6 +29,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.minimalos.device.PackageState;
+import org.minimalos.recovery.PanicPreflight;
+import org.minimalos.recovery.PhaseTwoRedButtonCoordinator;
+import org.minimalos.recovery.RecoveryStatus;
 
 public final class MainActivity extends Activity {
     private final List<AppTile> tiles = new ArrayList<>();
@@ -35,7 +39,7 @@ public final class MainActivity extends Activity {
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
-        getWindow().setStatusBarColor(Ui.color(this, R.color.accent));
+        getWindow().setStatusBarColor(Ui.color(this, R.color.background));
         setContentView(buildContent());
     }
 
@@ -93,6 +97,18 @@ public final class MainActivity extends Activity {
         }
         root.addView(grid, Ui.matchWrap());
 
+        LinearLayout mediaRow = new LinearLayout(this);
+        mediaRow.setOrientation(LinearLayout.HORIZONTAL);
+        addMediaButton(mediaRow, R.string.photo, MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA);
+        addMediaButton(mediaRow, R.string.video, MediaStore.INTENT_ACTION_VIDEO_CAMERA);
+        Button gallery = Ui.button(this, getString(R.string.gallery));
+        gallery.setTextSize(12);
+        gallery.setOnClickListener(view -> openMedia(new Intent(Intent.ACTION_VIEW,
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI), R.string.gallery));
+        mediaRow.addView(gallery, new LinearLayout.LayoutParams(0,
+                ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        root.addView(mediaRow, Ui.matchWrap());
+
         LinearLayout settingsRow = new LinearLayout(this);
         settingsRow.setOrientation(LinearLayout.HORIZONTAL);
         addSettingsButton(settingsRow, R.string.wifi, Settings.ACTION_WIFI_SETTINGS);
@@ -110,6 +126,24 @@ public final class MainActivity extends Activity {
         chooseHome.setOnClickListener(view -> openSettings(Settings.ACTION_HOME_SETTINGS));
         root.addView(chooseHome, Ui.matchWrap());
 
+        Button panic = Ui.button(this, getString(R.string.panic_preflight));
+        panic.setOnClickListener(view -> new AlertDialog.Builder(this)
+                .setTitle(R.string.panic_title)
+                .setMessage(R.string.panic_tap_message)
+                .setPositiveButton(R.string.understood, null)
+                .show());
+        panic.setOnLongClickListener(view -> {
+            RecoveryStatus status = new PhaseTwoRedButtonCoordinator(
+                    new PanicPreflight(true, true, false, false)).prepareExit();
+            new AlertDialog.Builder(this)
+                    .setTitle(R.string.panic_title)
+                    .setMessage(status.message())
+                    .setPositiveButton(R.string.understood, null)
+                    .show();
+            return true;
+        });
+        root.addView(panic, Ui.matchWrap());
+
         return scroll;
     }
 
@@ -118,6 +152,23 @@ public final class MainActivity extends Activity {
         button.setTextSize(12);
         button.setOnClickListener(view -> openSettings(action));
         row.addView(button, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+    }
+
+    private void addMediaButton(LinearLayout row, int label, String action) {
+        Button button = Ui.button(this, getString(label));
+        button.setTextSize(12);
+        button.setOnClickListener(view -> openMedia(new Intent(action), label));
+        row.addView(button, new LinearLayout.LayoutParams(0,
+                ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+    }
+
+    private void openMedia(Intent intent, int label) {
+        try {
+            startActivity(intent);
+        } catch (ActivityNotFoundException unavailable) {
+            Toast.makeText(this, getString(R.string.media_unavailable, getString(label)),
+                    Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void openSettings(String action) {
@@ -130,7 +181,8 @@ public final class MainActivity extends Activity {
 
     private void refreshStatus() {
         int battery = batteryPercent();
-        String batteryText = battery >= 0 ? getString(R.string.battery_format, battery) : "Batterie inconnue";
+        String batteryText = battery >= 0 ? getString(R.string.battery_format, battery)
+                : getString(R.string.battery_unknown);
         systemStatus.setText(getString(R.string.system_status_format, batteryText,
                 getString(isConnected() ? R.string.network_connected : R.string.network_disconnected)));
 

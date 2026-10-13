@@ -8,7 +8,9 @@
 | Android 8–10 | Compilable | Restrictions EMUI/MIUI, intents de réglages et comportement après redémarrage |
 | Android 11–15 | Compilable avec visibilité explicite des six packages | Sélecteur HOME et politiques constructeur |
 
-La compilation prouve la compatibilité des API, pas le fonctionnement sur chaque firmware. Wiko Lenny 3, Huawei P30 Lite MAR-LX1B, Samsung One UI et Xiaomi MIUI/HyperOS exigent des tests physiques. La cible de moins de 15 Mo PSS au repos n'est pas encore mesurée.
+La compilation prouve la compatibilité des API, pas le fonctionnement sur chaque firmware. Wiko Lenny 3, Huawei P30 Lite MAR-LX1B, Samsung One UI et Xiaomi MIUI/HyperOS exigent des tests physiques. La cible de moins de 15 Mo PSS au repos n'est pas encore mesurée. Les intents caméra/vidéo/galerie dépendent d'une application système compatible.
+
+L'inventaire Phase 2 déclare `QUERY_ALL_PACKAGES`. Il convient à une distribution directe de cet outil d'audit, mais Google Play restreint cette permission. Une publication Play devra confirmer l'éligibilité ou utiliser un inventaire fourni par ADB/Shizuku dans une phase ultérieure.
 
 ## Applications affichées
 

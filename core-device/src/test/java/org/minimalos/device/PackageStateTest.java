@@ -10,4 +10,10 @@ public class PackageStateTest {
         assertFalse(state.enabled());
         assertEquals("example.missing", state.packageName());
     }
+
+    @Test public void representsVersionAndSystemOriginForAudit() {
+        PackageState state = new PackageState("example.system", true, true, true, "2.4");
+        assertTrue(state.systemPackage());
+        assertEquals("2.4", state.versionName());
+    }
 }

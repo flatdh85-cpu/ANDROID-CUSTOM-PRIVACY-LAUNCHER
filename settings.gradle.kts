@@ -22,4 +22,5 @@ include(
     ":core-journal",
     ":core-debloat",
     ":core-recovery",
+    ":core-replication",
 )

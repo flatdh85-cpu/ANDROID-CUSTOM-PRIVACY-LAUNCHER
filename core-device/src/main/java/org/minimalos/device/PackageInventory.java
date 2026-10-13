@@ -5,4 +5,5 @@ import java.util.List;
 
 public interface PackageInventory {
     List<PackageState> inspect(Collection<String> packageNames);
+    List<PackageState> inspectAll();
 }
