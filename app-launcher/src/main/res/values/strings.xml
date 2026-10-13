@@ -18,6 +18,7 @@
     <string name="photo">Photo</string>
     <string name="video">Vidéo</string>
     <string name="gallery">Galerie</string>
+    <string name="internet">Internet</string>
     <string name="media_unavailable">Aucune application compatible pour %1$s.</string>
     <string name="battery_format">Batterie %1$d%%</string>
     <string name="battery_unknown">Batterie inconnue</string>

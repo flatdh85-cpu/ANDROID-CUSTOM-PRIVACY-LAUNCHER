@@ -16,7 +16,7 @@ public final class SyncJobService extends JobService {
         int minutes = PeerSettings.minutes(context);
         JobInfo.Builder builder = new JobInfo.Builder(JOB_ID,
                 new ComponentName(context, SyncJobService.class))
-                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_NONE)
                 .setMinimumLatency(minutes * 60000L)
                 .setOverrideDeadline(minutes * 120000L)
                 .setPersisted(true);

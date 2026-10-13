@@ -1,35 +1,70 @@
 package org.minimalos.launcher;
 
+import android.bluetooth.BluetoothSocket;
 import android.content.Context;
-import java.net.InetSocketAddress;
+import java.io.IOException;
 import java.net.InetAddress;
-import java.net.NetworkInterface;
+import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.util.Collections;
 import org.minimalos.replication.LanSync;
 import org.minimalos.replication.SyncResult;
 
 final class SyncWorker {
     static SyncResult sync(Context context) throws Exception {
         try {
-            String address = PeerSettings.address(context);
-            if (address.isEmpty()) throw new IllegalStateException("Adresse du pair absente");
-            InetAddress remote = InetAddress.getByName(address);
-            for (NetworkInterface network : Collections.list(NetworkInterface.getNetworkInterfaces()))
-                for (InetAddress local : Collections.list(network.getInetAddresses()))
-                    if (remote.equals(local)) throw new IllegalStateException("Le pair désigne ce téléphone");
+            String peer = PeerSettings.peer(context);
+            if (peer.isEmpty()) throw new IllegalStateException("Choisissez un appareil pair");
             byte[] key = LanSync.parseKey(PeerSettings.code(context));
-            try (Socket socket = new Socket()) {
-                socket.connect(new InetSocketAddress(address, LanSync.PORT), 15000);
-                SyncResult result = LanSync.client(socket, key, new GalleryRepository(context));
-                PeerSettings.prefs(context).edit().putLong("last_success_ms", System.currentTimeMillis())
-                        .putInt("last_sent", result.sent()).putInt("last_received", result.received())
-                        .remove("last_error").apply();
-                return result;
+            SyncResult result;
+            if (PeerSettings.BLUETOOTH.equals(PeerSettings.transport(context))) {
+                try (BluetoothSocket socket = BluetoothLink.connect(peer)) {
+                    result = LanSync.client(socket.getInputStream(), socket.getOutputStream(), key,
+                            new GalleryRepository(context));
+                }
+            } else {
+                InetAddress owner = WifiDirectLink.awaitOwner(context, peer);
+                try (Socket socket = openWifi(owner)) {
+                    result = LanSync.client(socket, key, new GalleryRepository(context));
+                }
             }
+            PeerSettings.prefs(context).edit().putLong("last_success_ms", System.currentTimeMillis())
+                    .putInt("last_sent", result.sent()).putInt("last_received", result.received())
+                    .remove("last_error").apply();
+            return result;
         } catch (Exception failure) {
             PeerSettings.prefs(context).edit().putString("last_error", failure.getMessage()).apply();
             throw failure;
         }
+    }
+    static void probe(Context context) throws Exception {
+        String peer = PeerSettings.peer(context);
+        if (peer.isEmpty()) throw new IllegalStateException("Choisissez un appareil pair");
+        byte[] key = LanSync.parseKey(PeerSettings.code(context));
+        if (PeerSettings.BLUETOOTH.equals(PeerSettings.transport(context))) {
+            try (BluetoothSocket socket = BluetoothLink.connect(peer)) {
+                LanSync.probeClient(socket.getInputStream(), socket.getOutputStream(), key);
+                return;
+            }
+        }
+        InetAddress owner = WifiDirectLink.awaitOwner(context, peer);
+        try (Socket socket = openWifi(owner)) {
+            socket.setSoTimeout(15000);
+            LanSync.probeClient(socket.getInputStream(), socket.getOutputStream(), key);
+        }
+    }
+    private static Socket openWifi(InetAddress owner) throws Exception {
+        IOException last = null;
+        for (int attempt = 0; attempt < 10; attempt++) {
+            Socket socket = new Socket();
+            try {
+                socket.connect(new InetSocketAddress(owner, LanSync.PORT), 2000);
+                return socket;
+            } catch (IOException failure) {
+                last = failure;
+                try { socket.close(); } catch (IOException ignored) { }
+                Thread.sleep(500);
+            }
+        }
+        throw new IOException("Récepteur Wi-Fi Direct non joignable", last);
     }
 }

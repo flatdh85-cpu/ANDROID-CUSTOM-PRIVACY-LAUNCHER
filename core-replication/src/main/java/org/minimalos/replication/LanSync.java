@@ -22,7 +22,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-/** Mutually authenticated, encrypted, bidirectional copy over a connected LAN socket. */
+/** Mutually authenticated, encrypted, bidirectional copy over a connected byte stream. */
 public final class LanSync {
     public static final int PORT = 38742;
     private static final int MAGIC = 0x4d4f5335;
@@ -44,18 +44,46 @@ public final class LanSync {
     }
 
     public static SyncResult client(Socket socket, byte[] key, MediaRepository repository) throws IOException {
-        return run(socket, key, repository, true);
+        socket.setSoTimeout(15000);
+        return run(socket.getInputStream(), socket.getOutputStream(), key, repository, true, socket);
     }
 
     public static SyncResult server(Socket socket, byte[] key, MediaRepository repository) throws IOException {
-        return run(socket, key, repository, false);
+        socket.setSoTimeout(15000);
+        return run(socket.getInputStream(), socket.getOutputStream(), key, repository, false, socket);
     }
 
-    private static SyncResult run(Socket socket, byte[] key, MediaRepository repository, boolean client) throws IOException {
+    public static SyncResult client(InputStream input, OutputStream output, byte[] key,
+            MediaRepository repository) throws IOException {
+        return run(input, output, key, repository, true, null);
+    }
+
+    public static SyncResult server(InputStream input, OutputStream output, byte[] key,
+            MediaRepository repository) throws IOException {
+        return run(input, output, key, repository, false, null);
+    }
+
+    /** Authenticate a reachable receiver without transferring a manifest or media. */
+    public static void probeClient(InputStream input, OutputStream output, byte[] key) throws IOException {
         if (key == null || key.length != 16) throw new IllegalArgumentException("Clé AES-128 requise");
-        socket.setSoTimeout(15000);
-        DataInputStream in = new DataInputStream(socket.getInputStream());
-        DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+        DataInputStream in = new DataInputStream(input);
+        DataOutputStream out = new DataOutputStream(output);
+        if (in.readInt() != MAGIC) throw new IOException("Version de protocole inconnue");
+        out.writeInt(MAGIC);
+        byte[] challenge = readBytes(in, 16);
+        out.write(auth(key, "client", challenge));
+        byte[] replyChallenge = random(16);
+        out.write(replyChallenge);
+        out.flush();
+        if (!MessageDigest.isEqual(auth(key, "server", replyChallenge), readBytes(in, 32)))
+            throw new IOException("Pair non authentifié");
+    }
+
+    private static SyncResult run(InputStream input, OutputStream output, byte[] key,
+            MediaRepository repository, boolean client, Socket socket) throws IOException {
+        if (key == null || key.length != 16) throw new IllegalArgumentException("Clé AES-128 requise");
+        DataInputStream in = new DataInputStream(input);
+        DataOutputStream out = new DataOutputStream(output);
         byte[] serverChallenge;
         byte[] clientChallenge;
         if (client) {
@@ -81,7 +109,7 @@ public final class LanSync {
             out.flush();
         }
         byte[] sessionKey = sessionKey(key, serverChallenge, clientChallenge);
-        socket.setSoTimeout(600000);
+        if (socket != null) socket.setSoTimeout(600000);
         ReplicationManifest local = new ReplicationManifest(repository.list());
         ReplicationManifest remote;
         if (client) {

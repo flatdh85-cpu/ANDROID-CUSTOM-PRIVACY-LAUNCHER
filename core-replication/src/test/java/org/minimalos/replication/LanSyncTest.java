@@ -7,6 +7,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
@@ -20,6 +22,25 @@ import java.util.concurrent.FutureTask;
 import org.junit.Test;
 
 public class LanSyncTest {
+    @Test public void copiesBothWaysOverBluetoothStyleStreams() throws Exception {
+        Memory a = new Memory();
+        Memory b = new Memory();
+        a.put("photo A");
+        b.put("vidéo B");
+        byte[] key = LanSync.parseKey(LanSync.newKey());
+        try (PipedInputStream clientIn = new PipedInputStream(131072);
+                PipedInputStream serverIn = new PipedInputStream(131072);
+                PipedOutputStream clientOut = new PipedOutputStream(serverIn);
+                PipedOutputStream serverOut = new PipedOutputStream(clientIn)) {
+            FutureTask<SyncResult> server = new FutureTask<>(() -> LanSync.server(serverIn, serverOut, key, b));
+            new Thread(server).start();
+            SyncResult client = LanSync.client(clientIn, clientOut, key, a);
+            server.get();
+            assertEquals(1, client.sent());
+            assertEquals(1, client.received());
+            assertSameFiles(a, b);
+        }
+    }
     @Test public void copiesBothWaysAndRecoversDeletedLocalCopy() throws Exception {
         Memory a = new Memory();
         Memory b = new Memory();
@@ -47,6 +68,42 @@ public class LanSyncTest {
             exchange(a, b, LanSync.parseKey(LanSync.newKey()), LanSync.parseKey(LanSync.newKey()));
             fail("Pair non authentifié accepté");
         } catch (IOException expected) { assertTrue(b.files.isEmpty()); }
+    }
+
+    @Test public void panicProbeRequiresTheSameCode() throws Exception {
+        byte[] receiverKey = LanSync.parseKey(LanSync.newKey());
+        try (ServerSocket listener = new ServerSocket(0)) {
+            FutureTask<Void> server = new FutureTask<>(() -> {
+                try (Socket socket = listener.accept()) {
+                    try { LanSync.server(socket, receiverKey, new Memory()); }
+                    catch (IOException closedAfterProbe) { /* Probe deliberately stops before a manifest. */ }
+                }
+                return null;
+            });
+            new Thread(server).start();
+            try (Socket socket = new Socket("127.0.0.1", listener.getLocalPort())) {
+                LanSync.probeClient(socket.getInputStream(), socket.getOutputStream(), receiverKey);
+            }
+            server.get();
+        }
+        try (ServerSocket listener = new ServerSocket(0)) {
+            FutureTask<Void> server = new FutureTask<>(() -> {
+                try (Socket socket = listener.accept()) {
+                    try { LanSync.server(socket, receiverKey, new Memory()); }
+                    catch (IOException wrongCode) { /* Receiver rejects the client. */ }
+                }
+                return null;
+            });
+            new Thread(server).start();
+            try (Socket socket = new Socket("127.0.0.1", listener.getLocalPort())) {
+                try {
+                    LanSync.probeClient(socket.getInputStream(), socket.getOutputStream(),
+                            LanSync.parseKey(LanSync.newKey()));
+                    fail("Mauvais code accepté par Panic");
+                } catch (IOException expected) { /* Receiver closes on wrong key. */ }
+            }
+            server.get();
+        }
     }
 
     @Test public void rejectsPathLikeMediaIdentifier() throws Exception {

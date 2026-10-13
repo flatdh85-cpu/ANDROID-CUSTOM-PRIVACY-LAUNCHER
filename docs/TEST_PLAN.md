@@ -1,16 +1,12 @@
-# Plan de test
+# Plan de test V4
 
-## Automatisé
+La compilation et les tests automatiques couvrent la copie A↔B sur sockets et sur flux comme Bluetooth, le rejet d'un mauvais code, la reprise à la limite d'un bloc, et la protection des identifiants de fichiers. Lint doit réussir. Les scénarios radio exigent deux téléphones physiques ; aucun résultat n'est présumé ici.
 
-Les modules Java vérifient l'inventaire, les profils exacts, la protection des packages critiques, le journal persistant, la simulation de debloat et les décisions de réplication. Les tests de socket locaux couvrent la copie A↔B de quatre contenus, la récupération d'une copie supprimée localement sans propagation, le refus d'un mauvais code et la reprise d'une vidéo à une frontière de bloc. La compilation Android et lint vérifient les ressources, le manifeste et les appels d'API. Ces tests ne représentent pas des téléphones réels.
-
-## Obligatoire sur deux téléphones avant usage réel
-
-1. Installer le même APK V3 sur A et B ; vérifier les huit raccourcis, photo, vidéo, galerie, les permissions média complètes, le thème, HOME et le launcher constructeur.
-2. Faire l'essai A1/A2 sur A et B1/B2 sur B décrit dans [PHONE_PAIRING.md](PHONE_PAIRING.md). Vérifier lecture et SHA-256 identiques sur les deux téléphones, originaux toujours présents.
-3. Tester Wi-Fi partagé puis hotspot, changement d'adresse IP, perte du réseau au milieu d'une vidéo, reprise, stockage plein, mauvais code et permissions refusées. Aucun échec ne doit afficher « copie vérifiée ».
-4. Tester les quatre intervalles 10/15/20/30 minutes, téléphone verrouillé, redémarrage, restrictions batterie et fermeture forcée. Mesurer les retards réels ; la cadence Android n'est pas garantie.
-5. Sur un téléphone secondaire rempli de médias de test uniquement, lancer Panic : confirmer chaque désinstallation, la copie, la suppression de galerie et le retour au launcher natif. Tester l'annulation de chaque étape, le pair absent, une galerie modifiée pendant la copie et la reprise après interruption. Vérifier que l'autre téléphone conserve les copies.
-6. Répéter selon les versions disponibles : Android 5/6/7, Android 10 EMUI, Android 11+, Samsung et Xiaomi. Mesurer PSS, batterie et durée des vidéos volumineuses. Vérifier appels, SMS, réseau mobile, Wi-Fi, Bluetooth, GPS, clavier et notifications avant/après.
-
-Aucun essai physique n'a été exécuté dans l'environnement cloud de cette livraison.
+1. Installer l'APK V4 sur A et B ; vérifier les huit raccourcis, **Internet**, photo, vidéo, galerie, HOME, le thème, le launcher constructeur et les permissions médias complètes.
+2. Associer A et B via Android Bluetooth. Activer la réception sur les deux, sélectionner le pair et le même code, puis créer A1/A2 sur A et B1/B2 sur B. Copier et vérifier que les quatre fichiers sont lisibles sur les deux et ont le même SHA-256. Répéter avec une vidéo volumineuse ; mesurer le débit.
+3. Refaire le test sur **Wi-Fi Direct**, sans WLAN commun ni hotspot. Vérifier la découverte, la demande de connexion Android, le rôle chef/client et le cas où la copie doit être lancée depuis l'autre téléphone.
+4. Tester les intervalles 10/15/20/30 minutes, la réception active, le redémarrage, l'écran verrouillé et les politiques de batterie EMUI/MIUI. Mesurer les délais réels ; ne pas attendre une cadence exacte.
+5. Couper Bluetooth ou Wi-Fi Direct au milieu d'une vidéo, relancer et vérifier la reprise ; tester stockage saturé, mauvais code, permissions refusées, pair absent et un média modifié pendant le transfert. Aucun échec ne doit afficher « copie vérifiée » ni effacer l'original.
+6. Supprimer localement une copie reçue sur A puis synchroniser : B doit garder son fichier. Confirmer aussi qu'une suppression locale de B ne supprime rien sur A.
+7. Sur appareils secondaires, tester Panic avec pair joignable puis absent, désinstallation refusée, suppression galerie refusée et interruption à chaque étape. Les confirmations Android doivent apparaître ; ne jamais prétendre avoir effacé ce qui subsiste. Ne lancez pas Panic simultanément sur A et B.
+8. Répéter selon les versions disponibles : Android 5/6/7, Android 10 EMUI, Android 11+, Samsung et Xiaomi. Mesurer PSS, batterie et durée des vidéos. Vérifier appels, SMS, données mobiles, Bluetooth, Wi-Fi, GPS, clavier et notifications avant/après.

@@ -113,6 +113,16 @@ public final class MainActivity extends Activity {
         addSettingsButton(settingsRow, R.string.location, Settings.ACTION_LOCATION_SOURCE_SETTINGS);
         root.addView(settingsRow, Ui.matchWrap());
 
+        Button internet = Ui.button(this, getString(R.string.internet));
+        internet.setOnClickListener(view -> {
+            try {
+                startActivity(Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_BROWSER));
+            } catch (ActivityNotFoundException unavailable) {
+                Toast.makeText(this, "Aucun navigateur installé", Toast.LENGTH_SHORT).show();
+            }
+        });
+        root.addView(internet, Ui.matchWrap());
+
         Button diagnostics = Ui.button(this, getString(R.string.diagnostics));
         diagnostics.setOnClickListener(view -> startActivity(new Intent(this, DiagnosticsActivity.class)));
         LinearLayout.LayoutParams diagParams = Ui.matchWrap();

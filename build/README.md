@@ -1,12 +1,10 @@
-# Versions de Minimal OS
+# Versions APK
 
-Ce dossier conserve les APK téléchargeables et décrit l'évolution prévue de l'architecture. Une version annoncée comme planifiée ne contient pas encore d'APK et ne doit pas être présentée comme fonctionnelle.
-
-| Version | État | Périmètre |
+| Version | État | Fonction principale |
 | --- | --- | --- |
-| [V1](V1/README.md) | Disponible | Launcher HOME minimal et diagnostics, strictement audit-only |
-| [V2](V2/README.md) | Disponible | Thème nuit, caméra/vidéo/galerie, audit, profils exacts, journal et noyau de réplication |
-| [V3](V3/README.md) | Disponible, tests physiques à faire | Copie locale A↔B et Panic guidé |
-| [V4](V4/README.md) | Planifiée | Wi-Fi Direct/BLE, essais physiques et récupération avancée |
+| [V1](V1/README.md) | Disponible | Launcher MVP |
+| [V2](V2/README.md) | Disponible | Audit et profils en simulation |
+| [V3](V3/README.md) | Disponible | Copie sur réseau local partagé et Panic guidé |
+| [V4](V4/README.md) | Disponible, tests physiques à faire | Bluetooth direct, Wi-Fi Direct et Internet |
 
-V3 contient un transport local, mais les essais sur deux appareils physiques restent à réaliser. V2 reste disponible et ne modifie aucun média ni package.
+L'APK V4 remplace la configuration de l'adresse IP de V3. Une nouvelle association des deux téléphones est nécessaire. Les APK sont des builds debug ; vérifiez la signature et testez sur appareils secondaires avant usage réel.

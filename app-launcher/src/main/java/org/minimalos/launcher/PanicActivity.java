@@ -22,8 +22,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.net.Socket;
-import java.net.InetSocketAddress;
 import org.minimalos.replication.MediaRecord;
 import org.minimalos.replication.SyncResult;
 
@@ -57,8 +55,8 @@ public final class PanicActivity extends Activity {
                 .setMessage("Les messageries seront proposées à la désinstallation en premier. Ensuite, la galerie sera copiée sur le pair configuré, puis Android demandera son effacement. Vérifiez que l’autre téléphone est allumé, connecté et en réception.")
                 .setNegativeButton("Annuler", null)
                 .setPositiveButton("Continuer", (dialog, which) -> {
-                    if (PeerSettings.address(this).isEmpty()) {
-                        status.setText("Configurez d’abord l’adresse du pair et testez une copie manuelle.");
+                    if (PeerSettings.peer(this).isEmpty()) {
+                        status.setText("Choisissez d’abord un pair direct et testez une copie manuelle.");
                         return;
                     }
                     if (!hasOtherHome()) {
@@ -69,9 +67,8 @@ public final class PanicActivity extends Activity {
                     start.setEnabled(false);
                     status.setText("Vérification de la connexion au pair…");
                     new Thread(() -> {
-                        try (Socket probe = new Socket()) {
-                            probe.connect(new InetSocketAddress(PeerSettings.address(this),
-                                    org.minimalos.replication.LanSync.PORT), 10000);
+                        try {
+                            SyncWorker.probe(this);
                             runOnUiThread(() -> {
                                 if (aborted) return;
                                 uninstallQueue.clear();

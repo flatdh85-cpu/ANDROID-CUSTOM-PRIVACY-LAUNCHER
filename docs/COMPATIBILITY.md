@@ -2,7 +2,7 @@
 
 ## Launcher
 
-| Plateforme | État V3 | Limites à vérifier sur appareil |
+| Plateforme | État V4 | Limites à vérifier sur appareil |
 | --- | --- | --- |
 | Android 5–7 | Compilable, API minimale 21 | Sélecteur HOME, stockage partagé, permissions et réception au premier plan |
 | Android 8–10 | Compilable | Restrictions EMUI/MIUI, suppression MediaStore Android 10, service après redémarrage |
@@ -16,7 +16,7 @@ L'inventaire Phase 2 déclare `QUERY_ALL_PACKAGES`. Il convient à une distribut
 
 Le launcher affiche Telegram, Canta, Shizuku, SimpleX Chat, Briar, LocalSend, Bridgefy et BitChat. Pour Bridgefy et BitChat, il cherche aussi l'application installée par son nom affiché lorsque l'identifiant du package diffère. Il ne garantit ni leur disponibilité, ni la compatibilité de leur version courante avec Android 5, ni leur provenance. Une absence est signalée sans proposer de binaire arbitraire.
 
-Shizuku et Canta restent facultatifs. Shizuku n'accorde aucun privilège au launcher. Briar est lancé comme application indépendante ; aucune API privée ou injection de contenu n'est supposée. Les photos/vidéos peuvent être copiées sur Wi-Fi local sans ces applications.
+Shizuku et Canta restent facultatifs. Shizuku n'accorde aucun privilège au launcher. Briar est lancé comme application indépendante ; aucune API privée ou injection de contenu n'est supposée. Les photos/vidéos peuvent être copiées par Bluetooth ou Wi-Fi Direct sans ces applications.
 
 ## Variantes futures
 
