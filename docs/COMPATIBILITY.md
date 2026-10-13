@@ -2,7 +2,7 @@
 
 ## Launcher
 
-| Plateforme | État V6 | Limites à vérifier sur appareil |
+| Plateforme | État V7 | Limites à vérifier sur appareil |
 | --- | --- | --- |
 | Android 5–7 | Compilable, API minimale 21 | Sélecteur HOME, stockage partagé, permissions et réception au premier plan |
 | Android 8–10 | Compilable | Restrictions EMUI/MIUI, suppression MediaStore Android 10, service après redémarrage |
@@ -23,3 +23,5 @@ Shizuku et Canta restent facultatifs. Shizuku n'accorde aucun privilège au laun
 ## Variantes futures
 
 Si les dépendances des phases ultérieures ne peuvent plus maintenir API 21, une variante `legacy` conservera le protocole de profils et de journal partagé avec une variante `modern`. Cette séparation n'est pas utile tant que le MVP reste basé sur le framework Android.
+
+Retour terrain à investiguer : Bluetooth interrompu pendant l’authentification et récepteur Wi-Fi Direct inaccessible entre un S22 et un Huawei sous EMUI 10 en V6. Les corrections V7 sont compilées et testées sur JVM ; leur effet sur ces deux appareils reste à confirmer.

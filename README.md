@@ -1,10 +1,10 @@
 # Minimal OS
 
-Minimal OS est un launcher Android sobre destiné aux téléphones modestes. La V6 affiche huit raccourcis, leurs notifications, un bouton Internet et une copie bidirectionnelle chiffrée des photos et vidéos par **Bluetooth direct** ou **Wi-Fi Direct**. Aucun Wi-Fi commun ni hotspot n'est nécessaire. Panic vérifie désormais une réponse authentifiée du pair avant les confirmations Android ; l'audit et les profils de V2 restent disponibles.
+Minimal OS est un launcher Android sobre destiné aux téléphones modestes. La V7 affiche huit raccourcis, leurs notifications, un bouton Internet et une copie bidirectionnelle chiffrée des photos et vidéos par **Bluetooth direct** ou **Wi-Fi Direct**. Aucun Wi-Fi commun ni hotspot n'est nécessaire. La V7 corrige le changement de récepteur Bluetooth/Wi-Fi Direct et accepte un code simple de 5 chiffres et ajoute un test de liaison sans copie ; Panic exige une réponse authentifiée avant les confirmations Android ; l'audit et les profils de V2 restent disponibles.
 
 ## Télécharger
 
-La version courante est [`build/V6/Minimal-OS-V6-debug.apk`](build/V6/Minimal-OS-V6-debug.apk). **Installez V6 sur les deux téléphones** ; elle ne synchronise pas avec V5. Les versions précédentes restent dans [`build/`](build/README.md). Consultez [le guide A↔B](docs/PHONE_PAIRING.md) avant d'utiliser Panic.
+La version courante est [`build/V7/Minimal-OS-V7-debug.apk`](build/V7/Minimal-OS-V7-debug.apk). **Installez V7 sur les deux téléphones** ; elle ne synchronise pas avec V6. Les versions précédentes restent dans [`build/`](build/README.md). Consultez [le guide A↔B](docs/PHONE_PAIRING.md) avant d'utiliser Panic.
 
 ## Construire
 

@@ -1,6 +1,6 @@
 # Backlog priorisé
 
-## Réalisé dans V1–V6
+## Réalisé dans V1–V7
 
 - Launcher HOME Android 5+, huit raccourcis, thème noir et blanc, diagnostics, photo/vidéo/galerie système.
 - Profils exacts, audit complet, simulation de debloat, journal persistant et export.

@@ -13,10 +13,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 /** Wi-Fi P2P negotiates its own link; no existing WLAN, hotspot or IP entry is used. */
 @SuppressLint("MissingPermission") // Permission demandée à l'écran ; échec de job/service géré si elle est retirée.
-final class WifiDirectLink {
+final class WifiDirectLink implements AutoCloseable {
     final WifiP2pManager manager;
     final WifiP2pManager.Channel channel;
     private WifiDirectLink(Context context) throws IOException {
@@ -35,55 +36,72 @@ final class WifiDirectLink {
         manager.connect(channel, config, callback);
     }
     void info(WifiP2pManager.ConnectionInfoListener callback) { manager.requestConnectionInfo(channel, callback); }
+    @Override public void close() {
+        if (android.os.Build.VERSION.SDK_INT >= 27) channel.close();
+    }
+
+    static final class Connection implements AutoCloseable {
+        final InetAddress owner;
+        private final WifiDirectLink link;
+        Connection(WifiDirectLink link, WifiP2pInfo info) throws IOException {
+            this.link = link;
+            owner = clientOwner(info);
+        }
+        @Override public void close() { link.close(); }
+    }
 
     /** Only the P2P group client initiates TCP. The group owner is the receiver. */
-    static InetAddress awaitOwner(Context context, String peer) throws Exception {
+    static Connection awaitOwner(Context context, String peer) throws Exception {
         WifiDirectLink link = create(context);
-        WifiP2pInfo current = awaitInfo(link, 2);
-        if (current != null && current.groupFormed) return clientOwner(current);
-        CountDownLatch discovery = new CountDownLatch(1);
-        link.discover(new WifiP2pManager.ActionListener() {
-            @Override public void onSuccess() { discovery.countDown(); }
-            @Override public void onFailure(int reason) { discovery.countDown(); }
-        });
-        discovery.await(5, TimeUnit.SECONDS);
-        boolean found = false;
-        for (int attempt = 0; attempt < 12 && !found; attempt++) {
-            if (attempt == 6) {
-                CountDownLatch retry = new CountDownLatch(1);
-                link.discover(new WifiP2pManager.ActionListener() {
-                    @Override public void onSuccess() { retry.countDown(); }
-                    @Override public void onFailure(int reason) { retry.countDown(); }
-                });
-                retry.await(5, TimeUnit.SECONDS);
+        try {
+            WifiP2pInfo current = awaitInfo(link, 2);
+            if (current != null && current.groupFormed) return new Connection(link, current);
+            CountDownLatch discovery = new CountDownLatch(1);
+            link.discover(new WifiP2pManager.ActionListener() {
+                @Override public void onSuccess() { discovery.countDown(); }
+                @Override public void onFailure(int reason) { discovery.countDown(); }
+            });
+            discovery.await(5, TimeUnit.SECONDS);
+            boolean found = false;
+            for (int attempt = 0; attempt < 12 && !found; attempt++) {
+                if (attempt == 6) {
+                    CountDownLatch retry = new CountDownLatch(1);
+                    link.discover(new WifiP2pManager.ActionListener() {
+                        @Override public void onSuccess() { retry.countDown(); }
+                        @Override public void onFailure(int reason) { retry.countDown(); }
+                    });
+                    retry.await(5, TimeUnit.SECONDS);
+                }
+                CountDownLatch listed = new CountDownLatch(1);
+                AtomicReference<List<WifiP2pDevice>> devices = new AtomicReference<>(new ArrayList<>());
+                link.peers(list -> { devices.set(new ArrayList<>(list.getDeviceList())); listed.countDown(); });
+                listed.await(3, TimeUnit.SECONDS);
+                for (WifiP2pDevice device : devices.get()) if (peer.equalsIgnoreCase(device.deviceAddress)) found = true;
+                if (!found) Thread.sleep(2000);
             }
-            CountDownLatch listed = new CountDownLatch(1);
-            List<WifiP2pDevice> devices = new ArrayList<>();
-            link.peers(list -> { devices.addAll(list.getDeviceList()); listed.countDown(); });
-            listed.await(3, TimeUnit.SECONDS);
-            for (WifiP2pDevice device : devices) if (peer.equalsIgnoreCase(device.deviceAddress)) found = true;
-            if (!found) Thread.sleep(2000);
-        }
-        if (!found) throw new IOException("Pair Wi-Fi Direct introuvable à proximité");
-        CountDownLatch requested = new CountDownLatch(1);
-        link.connect(peer, new WifiP2pManager.ActionListener() {
-            @Override public void onSuccess() { requested.countDown(); }
-            @Override public void onFailure(int reason) { requested.countDown(); }
-        });
-        requested.await(5, TimeUnit.SECONDS);
-        for (int attempt = 0; attempt < 30; attempt++) {
-            WifiP2pInfo info = awaitInfo(link, 2);
-            if (info != null && info.groupFormed) return clientOwner(info);
-            Thread.sleep(1000);
-        }
-        throw new IOException("Connexion Wi-Fi Direct non établie");
+            if (!found) throw new IOException("Pair Wi-Fi Direct introuvable à proximité");
+            CountDownLatch requested = new CountDownLatch(1);
+            java.util.concurrent.atomic.AtomicInteger connectError = new java.util.concurrent.atomic.AtomicInteger(-1);
+            link.connect(peer, new WifiP2pManager.ActionListener() {
+                @Override public void onSuccess() { requested.countDown(); }
+                @Override public void onFailure(int reason) { connectError.set(reason); requested.countDown(); }
+            });
+            if (!requested.await(5, TimeUnit.SECONDS)) throw new IOException("Android ne répond pas à la demande de connexion Wi-Fi Direct");
+            if (connectError.get() >= 0) throw new IOException("Connexion du groupe Wi-Fi Direct refusée par Android (" + connectError.get() + ")");
+            for (int attempt = 0; attempt < 30; attempt++) {
+                WifiP2pInfo info = awaitInfo(link, 2);
+                if (info != null && info.groupFormed) return new Connection(link, info);
+                Thread.sleep(1000);
+            }
+            throw new IOException("Connexion Wi-Fi Direct non établie");
+        } catch (Exception failure) { link.close(); throw failure; }
     }
     private static WifiP2pInfo awaitInfo(WifiDirectLink link, int seconds) throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
-        WifiP2pInfo[] value = new WifiP2pInfo[1];
-        link.info(info -> { value[0] = info; latch.countDown(); });
+        AtomicReference<WifiP2pInfo> value = new AtomicReference<>();
+        link.info(info -> { value.set(info); latch.countDown(); });
         latch.await(seconds, TimeUnit.SECONDS);
-        return value[0];
+        return value.get();
     }
     private static InetAddress clientOwner(WifiP2pInfo info) throws IOException {
         if (info.isGroupOwner) throw new IOException("Ce téléphone est chef du groupe Wi-Fi Direct : lancez la copie depuis l’autre téléphone");

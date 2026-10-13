@@ -19,20 +19,53 @@ import java.util.List;
 import java.util.Set;
 import javax.crypto.Cipher;
 import javax.crypto.Mac;
+import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 
 /** Mutually authenticated, encrypted, bidirectional copy over a connected byte stream. */
 public final class LanSync {
     public static final int PORT = 38742;
-    private static final int MAGIC = 0x4d4f5337;
+    private static final int MAGIC = 0x4d4f5338;
     private static final int CHUNK = 64 * 1024;
     private static final int MAX_FILES = 100000;
     private static final SecureRandom RANDOM = new SecureRandom();
     private LanSync() {}
 
+    public static final class AuthenticationException extends IOException {
+        public AuthenticationException(String message) { super(message); }
+    }
+    public static final class VersionException extends IOException {
+        public VersionException(String message) { super(message); }
+    }
+
+    public static String normalizeKey(String value) {
+        String normalized = value == null ? "" : value.replaceAll("[\\s-]", "").toLowerCase(java.util.Locale.ROOT);
+        if (!normalized.matches("[0-9]{5}|[0-9a-f]{32}"))
+            throw new IllegalArgumentException("Entrez 5 chiffres, ou un code long de 32 caractères hexadécimaux");
+        return normalized;
+    }
+
+    /** A visual comparison aid, never a replacement for authentication. */
+    public static String keyFingerprint(String value) {
+        try {
+            String digest = hex(sha256().digest(normalizeKey(value).getBytes(StandardCharsets.US_ASCII)))
+                    .substring(0, 12).toUpperCase(java.util.Locale.ROOT);
+            return digest.substring(0, 4) + "-" + digest.substring(4, 8) + "-" + digest.substring(8);
+        } catch (IOException impossible) { throw new IllegalStateException(impossible); }
+    }
+
     public static byte[] parseKey(String hex) {
-        if (hex == null || !hex.matches("[0-9a-fA-F]{32}")) throw new IllegalArgumentException("Code de pair invalide");
+        hex = normalizeKey(hex);
+        if (hex.length() == 5) {
+            // A short code has only 100,000 possibilities. KDF cost does not make it a strong secret.
+            PBEKeySpec password = new PBEKeySpec(hex.toCharArray(),
+                    "MinimalOS-short-code-v1".getBytes(StandardCharsets.US_ASCII), 100000, 128);
+            try { return SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1").generateSecret(password).getEncoded(); }
+            catch (GeneralSecurityException unavailable) { throw new IllegalStateException("Dérivation du code indisponible", unavailable); }
+            finally { password.clearPassword(); }
+        }
         byte[] key = new byte[16];
         for (int i = 0; i < key.length; i++) key[i] = (byte) Integer.parseInt(hex.substring(i * 2, i * 2 + 2), 16);
         return key;
@@ -41,6 +74,9 @@ public final class LanSync {
     public static String newKey() {
         byte[] key = random(16);
         return hex(key);
+    }
+    public static String newShortCode() {
+        return String.format(java.util.Locale.ROOT, "%05d", RANDOM.nextInt(100000));
     }
 
     public static SyncResult client(Socket socket, byte[] key, MediaRepository repository) throws IOException {
@@ -80,7 +116,7 @@ public final class LanSync {
         int version;
         try { version = in.readInt(); }
         catch (IOException closed) { throw new IOException("Récepteur fermé avant authentification : vérifiez le pair sélectionné et sa réception active", closed); }
-        if (version != MAGIC) throw new IOException("Versions Minimal OS différentes : installez le même APK sur les deux téléphones");
+        if (version != MAGIC) throw new VersionException("Versions Minimal OS différentes : installez la V7 sur les deux téléphones");
         out.writeInt(MAGIC);
         byte[] serverChallenge;
         try { serverChallenge = readBytes(in, 16); }
@@ -89,11 +125,16 @@ public final class LanSync {
         byte[] clientChallenge = random(16);
         out.write(clientChallenge);
         out.flush();
+        int accepted;
+        try { accepted = in.readUnsignedByte(); }
+        catch (IOException closed) { throw new IOException("Liaison interrompue avant la réponse d'authentification ; consultez l'état du récepteur", closed); }
+        if (accepted == 0) throw new AuthenticationException("Le récepteur a refusé le code : comparez le repère du code enregistré sur les deux téléphones");
+        if (accepted != 1) throw new IOException("Réponse d'authentification invalide");
         byte[] answer;
         try { answer = readBytes(in, 32); }
-        catch (IOException closed) { throw new IOException("Code partagé différent ou récepteur fermé : vérifiez le même code sur les deux téléphones", closed); }
+        catch (IOException closed) { throw new IOException("Liaison interrompue pendant la réponse d'authentification ; consultez l'état du récepteur", closed); }
         if (!MessageDigest.isEqual(auth(key, "server", clientChallenge), answer))
-            throw new IOException("Pair non authentifié : vérifiez le code partagé");
+            throw new AuthenticationException("Preuve du récepteur invalide : comparez le repère du code enregistré");
         return new byte[][]{serverChallenge, clientChallenge};
     }
 
@@ -113,10 +154,14 @@ public final class LanSync {
             out.writeInt(MAGIC);
             out.write(serverChallenge);
             out.flush();
-            if (in.readInt() != MAGIC) throw new IOException("Versions Minimal OS différentes");
-            if (!MessageDigest.isEqual(auth(key, "client", serverChallenge), readBytes(in, 32)))
-                throw new IOException("Pair non authentifié");
+            if (in.readInt() != MAGIC) throw new VersionException("Versions Minimal OS différentes");
+            boolean accepted = MessageDigest.isEqual(auth(key, "client", serverChallenge), readBytes(in, 32));
             clientChallenge = readBytes(in, 16);
+            out.writeByte(accepted ? 1 : 0);
+            if (!accepted) {
+                out.flush();
+                throw new AuthenticationException("Code du pair refusé : comparez le repère du code enregistré");
+            }
             out.write(auth(key, "server", clientChallenge));
             out.flush();
         }

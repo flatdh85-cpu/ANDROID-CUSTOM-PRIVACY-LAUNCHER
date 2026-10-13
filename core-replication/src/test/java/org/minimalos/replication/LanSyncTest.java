@@ -5,6 +5,8 @@ import static org.junit.Assert.*;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PipedInputStream;
@@ -67,10 +69,96 @@ public class LanSyncTest {
         try {
             exchange(a, b, LanSync.parseKey(LanSync.newKey()), LanSync.parseKey(LanSync.newKey()));
             fail("Pair non authentifié accepté");
-        } catch (IOException expected) {
-            assertTrue(expected.getMessage().contains("Code partagé"));
+        } catch (LanSync.AuthenticationException expected) {
+            assertTrue(expected.getMessage().contains("refusé le code"));
             assertTrue(b.files.isEmpty());
         }
+    }
+
+    @Test(timeout = 5000) public void connectionLostDuringAuthenticationIsNotReportedAsWrongCode() throws Exception {
+        byte[] key = LanSync.parseKey(LanSync.newKey());
+        try (ServerSocket listener = new ServerSocket(0)) {
+            FutureTask<Void> server = new FutureTask<>(() -> {
+                try (Socket socket = listener.accept()) {
+                    DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+                    out.writeInt(0x4d4f5338);
+                    out.write(new byte[16]);
+                    out.flush();
+                    new DataInputStream(socket.getInputStream()).readFully(new byte[4 + 32 + 16]);
+                    // The radio or receiver disappears without accepting or rejecting the code.
+                }
+                return null;
+            });
+            Thread thread = new Thread(server);
+            thread.setDaemon(true);
+            thread.start();
+            try (Socket socket = new Socket("127.0.0.1", listener.getLocalPort())) {
+                socket.setSoTimeout(2000);
+                try {
+                    LanSync.probeClient(socket.getInputStream(), socket.getOutputStream(), key);
+                    fail("Une fermeture ne doit pas valider la liaison");
+                } catch (IOException expected) {
+                    assertFalse(expected instanceof LanSync.AuthenticationException);
+                    assertTrue(expected.getMessage().contains("Liaison interrompue"));
+                }
+            }
+            server.get();
+        }
+    }
+
+    @Test public void formattedCodeAndSavedCodeHaveTheSameFingerprint() {
+        String key = "0123456789abcdef0123456789abcdef";
+        String formatted = "0123-4567 89AB-CDEF\n0123-4567 89AB-CDEF";
+        assertEquals(key, LanSync.normalizeKey(formatted));
+        assertArrayEquals(LanSync.parseKey(key), LanSync.parseKey(formatted));
+        assertEquals(LanSync.keyFingerprint(key), LanSync.keyFingerprint(formatted));
+        assertNotEquals(LanSync.keyFingerprint(key), LanSync.keyFingerprint("1123456789abcdef0123456789abcdef"));
+        try { LanSync.parseKey("0123"); fail("Code tronqué accepté"); }
+        catch (IllegalArgumentException expected) { }
+    }
+
+    @Test(timeout = 5000) public void acceptanceByteWithoutValidServerProofCannotValidatePanic() throws Exception {
+        try (ServerSocket listener = new ServerSocket(0)) {
+            FutureTask<Void> server = new FutureTask<>(() -> {
+                try (Socket socket = listener.accept()) {
+                    DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+                    out.writeInt(0x4d4f5338);
+                    out.write(new byte[16]);
+                    out.flush();
+                    new DataInputStream(socket.getInputStream()).readFully(new byte[4 + 32 + 16]);
+                    out.writeByte(1);
+                    out.write(new byte[32]); // Claims acceptance without knowing the shared key.
+                    out.flush();
+                }
+                return null;
+            });
+            Thread thread = new Thread(server);
+            thread.setDaemon(true);
+            thread.start();
+            try (Socket socket = new Socket("127.0.0.1", listener.getLocalPort())) {
+                socket.setSoTimeout(2000);
+                try {
+                    LanSync.probeClient(socket.getInputStream(), socket.getOutputStream(), LanSync.parseKey(LanSync.newKey()));
+                    fail("Un serveur sans preuve a validé Panic");
+                } catch (LanSync.AuthenticationException expected) { }
+            }
+            server.get();
+        }
+    }
+
+    @Test public void fiveDigitCodeDerivesTheSameKeyOnBothPeersAndCopiesBothWays() throws Exception {
+        byte[] aKey = LanSync.parseKey("01234");
+        byte[] bKey = LanSync.parseKey("01 234");
+        // PBKDF2-HMAC-SHA1 vector independently computed for the documented wire KDF.
+        assertArrayEquals(LanSync.parseKey("7e606049d9eee7d970c839717df181db"), aKey);
+        assertArrayEquals(aKey, bKey);
+        assertFalse(Arrays.equals(aKey, LanSync.parseKey("01235")));
+        Memory a = new Memory();
+        Memory b = new Memory();
+        a.put("photo A");
+        b.put("photo B");
+        exchange(a, b, aKey, bKey);
+        assertSameFiles(a, b);
     }
 
     @Test public void reportsReceiverGalleryFailureInsteadOfClosingWithoutReason() throws Exception {

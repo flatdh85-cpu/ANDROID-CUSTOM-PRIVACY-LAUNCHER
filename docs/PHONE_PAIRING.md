@@ -1,11 +1,34 @@
-# Associer deux téléphones en V6
+# Associer deux téléphones en V7
 
-Installez **le même APK V6** sur A et B. La V6 ne synchronise pas avec la V5. Accordez une fois les permissions Bluetooth et l'accès complet aux photos et vidéos, choisissez le même code de 32 caractères et l'autre appareil sur les deux téléphones, puis démarrez la réception directe. La copie suivante ne demande aucune validation dans Minimal OS. Android peut imposer son autorisation initiale ou retirer une permission plus tard.
+Installez **le même APK V7** sur A et B, en mise à jour pour conserver les réglages et les copies privées. V7/MOS8 ne synchronise pas avec V6/MOS7. Aucun Wi-Fi commun, hotspot ni Internet n’est nécessaire. Les copies ne demandent pas de confirmation dans Minimal OS après configuration ; les autorisations initiales et les confirmations de groupe éventuelles restent gérées par Android.
 
-Pour **Bluetooth**, associez les téléphones une fois dans les réglages Android, sélectionnez-les dans Minimal OS et gardez la réception active sur le pair. Testez **Copier maintenant A ↔ B** avant Panic. Si Panic affiche un pair inaccessible, aucune désinstallation n'a commencé : vérifiez la V6 sur les deux appareils, le code et l'état de la réception. La sonde retente la liaison mais ne contourne jamais un échec d'authentification.
+## Vérifier la liaison avant de copier
 
-Pour **Wi-Fi Direct**, activez Wi-Fi et les permissions radio Android. L'erreur de découverte `0` est une erreur générique de la pile Wi-Fi P2P : elle ne prouve pas que la localisation est éteinte. La V6 cherche aussi les pairs déjà connus, réessaie et accepte un groupe déjà formé avec le pair enregistré. Si aucun pair n'apparaît, ouvrez les réglages Wi-Fi Direct sur les deux téléphones et relancez la recherche. Android peut encore demander confirmation du groupe ; l'application ne peut pas supprimer cette demande système de manière garantie.
+1. Dans **Copie entre téléphones**, comparez le **Repère du code enregistré** sur A et B. Il doit être identique. Le code est conservé lors d’une mise à jour ; pour le changer, recopiez celui d’un téléphone sur l’autre, puis touchez **Enregistrer le code partagé**. Les espaces, tirets et majuscules sont acceptés. Le repère aide à vérifier les réglages ; il ne remplace pas l’authentification et le code reste privé. Vous pouvez saisir **5 chiffres**, ou toucher **Créer un code de 5 chiffres** sur un seul téléphone puis recopier ce code sur l’autre. Les anciens codes longs restent acceptés. Un code court offre seulement 100 000 possibilités ; le chiffrement ne compense pas cette faible résistance aux essais de code.
+2. Choisissez le même transport sur les deux téléphones, puis sélectionnez le pair sur celui qui lancera la copie. Touchez **Démarrer la réception directe** sur les deux. La V7 reconfigure le service si le transport a changé et affiche son état effectif en bas de l’écran. Le S22 peut démarrer sa réception même si sa liste d’appareils est vide : seul le téléphone qui lance la copie doit sélectionner le pair.
+3. Touchez **Tester la liaison (sans copier)** depuis le téléphone de départ. Cette sonde ne lit pas la galerie et ne déclenche aucune suppression. Son succès prouve que le pair a répondu au code ; il ne prouve pas que la galerie est accessible ou copiée.
+4. Accordez l’accès complet aux photos/vidéos, puis essayez **Copier maintenant A ↔ B** avec une photo et une courte vidéo sur chaque appareil. Vérifiez leur présence et leur lecture dans **Voir les copies reçues** avant d’utiliser Panic.
 
-Planifiez 10, 15, 20 ou 30 minutes sur **un seul** téléphone ; l'autre reste en réception. Une session copie dans les deux sens. Android peut différer ces tentatives, surtout sur EMUI/MIUI. Vérifiez les copies reçues et gardez les originaux tant que le reçu de transfert n'est pas validé.
+## Bluetooth : Huawei sous EMUI 10 vers S22
 
-Pour afficher les messages dans « Communication essentielle », touchez **Activer les notifications dans Android** sur l'accueil, puis autorisez Minimal OS dans la liste des services d'accès aux notifications. Cette autorisation spéciale n'est demandée qu'une fois ; les notifications des huit raccourcis apparaîtront ensuite dans une liste et sous forme de compteur. Sur certains Android récents, si le réglage est grisé pour l'APK installé hors magasin, ouvrez la fiche de l'application et autorisez d'abord les « paramètres restreints ». Le contenu des notifications n'est conservé qu'en mémoire.
+Les téléphones doivent être associés une fois dans les réglages Bluetooth Android. Sur le S22 récepteur, attendez **Bluetooth : en écoute**, puis lancez le test de liaison sur le Huawei. Si les repères correspondent mais que la liaison échoue, relevez **le message complet du Huawei et l’état du récepteur S22**.
+
+- « Le récepteur a refusé le code » : le serveur a explicitement rejeté la preuve. Comparer les codes enregistrés, pas seulement le texte encore en cours de saisie.
+- « Liaison interrompue » : la connexion s’est fermée avant une réponse exploitable ; cela ne démontre pas un mauvais code. L’état du récepteur aide à identifier l’arrêt ou l’erreur.
+- « Versions Minimal OS différentes » : vérifier la V7 sur les deux appareils.
+
+Le test retente les coupures, mais ne contourne jamais un refus d’authentification. Les vidéos volumineuses peuvent prendre du temps en Bluetooth.
+
+## Wi-Fi Direct
+
+Activez Wi-Fi et les permissions radio Android, recherchez et sélectionnez le pair, puis démarrez la réception sur les deux appareils. L’erreur de découverte `0` est générique ; elle ne prouve pas que la localisation est éteinte. La recherche consulte aussi les pairs connus et les groupes déjà formés.
+
+Après formation du groupe, un téléphone affiche **Wi-Fi Direct : en écoute sur … ; lancez la copie depuis l’autre téléphone**. L’autre affiche **groupe connecté ; lancez la copie depuis ce téléphone** : utilisez ce dernier pour tester puis copier. La session copie dans les deux sens. L’application indique le rôle effectif ; ne supposez pas que le rôle chef/client reste fixe.
+
+Si le groupe est connecté mais la réception inaccessible, relevez l’état de celui qui doit écouter. La V7 retente l’ouverture du port si Android configure encore l’interface. Un refus de connexion et un délai dépassé sont affichés avec leur cause technique ; ils ne sont pas assimilés à une erreur de code. Android peut demander confirmation de création du groupe P2P, y compris lors d’une reconnexion.
+
+## Planification et notifications
+
+Planifiez 10, 15, 20 ou 30 minutes sur **un seul** téléphone ; l’autre garde sa réception active. Une session copie dans les deux sens. Android peut différer ces tentatives. Si cela marche écran allumé mais échoue écran verrouillé, vérifier les restrictions de batterie et de lancement en arrière-plan de Minimal OS sur EMUI et One UI. Les cadences et le maintien du service doivent être mesurés sur les deux appareils.
+
+Pour les messages de « Communication essentielle », touchez **Activer les notifications dans Android** sur l’accueil et accordez une fois l’accès spécial à Minimal OS. Les notifications apparaissent en liste et en compteur. Si le réglage d’un APK installé hors magasin est grisé, Android peut exiger d’autoriser les « paramètres restreints » dans la fiche de l’application. Les résumés restent en mémoire.

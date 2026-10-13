@@ -22,8 +22,8 @@ final class SyncWorker {
                             new GalleryRepository(context));
                 }
             } else {
-                InetAddress owner = WifiDirectLink.awaitOwner(context, peer);
-                try (Socket socket = openWifi(owner)) {
+                try (WifiDirectLink.Connection connection = WifiDirectLink.awaitOwner(context, peer);
+                        Socket socket = openWifi(connection.owner)) {
                     result = LanSync.client(socket, key, new GalleryRepository(context));
                 }
             }
@@ -36,7 +36,7 @@ final class SyncWorker {
             String message = failure.getMessage();
             if (PeerSettings.BLUETOOTH.equals(PeerSettings.transport(context)) && message != null
                     && (message.contains("read failed") || message.contains("socket might closed")))
-                useful = new IOException("Liaison Bluetooth fermée : vérifiez le code et le pair sélectionné sur les deux téléphones, puis le dernier échec du récepteur", failure);
+                useful = new IOException("Liaison Bluetooth interrompue pendant l'échange : consultez l'état du récepteur sur l'autre téléphone", failure);
             PeerSettings.prefs(context).edit().putString("last_error", useful.getMessage()).apply();
             throw useful;
         }
@@ -52,23 +52,22 @@ final class SyncWorker {
                     LanSync.probeClient(socket.getInputStream(), socket.getOutputStream(), key);
                     return;
                 } catch (IOException failure) {
-                    if (failure.getMessage() != null && (failure.getMessage().contains("Code partagé")
-                            || failure.getMessage().contains("Versions Minimal OS"))) throw failure;
+                    if (failure instanceof LanSync.AuthenticationException || failure instanceof LanSync.VersionException) throw failure;
                     last = failure;
                     if (attempt < 2) Thread.sleep(1000);
                 }
             }
-            throw new IOException("Récepteur Bluetooth non authentifié après trois tentatives : vérifiez la V6 et la réception sur l'autre téléphone", last);
+            throw new IOException("Bluetooth : trois tentatives échouées. " + (last == null ? "Réception indisponible" : last.getMessage()), last);
         }
-        InetAddress owner = WifiDirectLink.awaitOwner(context, peer);
-        try (Socket socket = openWifi(owner)) {
+        try (WifiDirectLink.Connection connection = WifiDirectLink.awaitOwner(context, peer);
+                Socket socket = openWifi(connection.owner)) {
             socket.setSoTimeout(15000);
             LanSync.probeClient(socket.getInputStream(), socket.getOutputStream(), key);
         }
     }
     private static Socket openWifi(InetAddress owner) throws Exception {
         IOException last = null;
-        for (int attempt = 0; attempt < 10; attempt++) {
+        for (int attempt = 0; attempt < 15; attempt++) {
             Socket socket = new Socket();
             try {
                 socket.connect(new InetSocketAddress(owner, LanSync.PORT), 2000);
@@ -76,9 +75,12 @@ final class SyncWorker {
             } catch (IOException failure) {
                 last = failure;
                 try { socket.close(); } catch (IOException ignored) { }
-                Thread.sleep(500);
+                if (attempt < 14) Thread.sleep(1000);
             }
         }
-        throw new IOException("Récepteur Wi-Fi Direct non joignable", last);
+        String detail = last == null ? "Pas de réponse" : last.getClass().getSimpleName() + ": " + last.getMessage();
+        throw new IOException("Groupe Wi-Fi Direct connecté, mais réception inaccessible sur "
+                + owner.getHostAddress() + ":" + LanSync.PORT + ". Vérifiez que l'autre téléphone affiche « Wi-Fi Direct : en écoute ». "
+                + detail, last);
     }
 }

@@ -8,5 +8,6 @@
 | [V4](V4/README.md) | Disponible, tests physiques à faire | Bluetooth direct, Wi-Fi Direct et Internet |
 | [V5](V5/README.md) | Disponible, tests physiques à faire | Correction des copies Bluetooth et diagnostic du récepteur |
 | [V6](V6/README.md) | Disponible, tests physiques à faire | Sonde Panic, découverte Wi-Fi Direct et notifications |
+| [V7](V7/README.md) | Disponible, tests physiques à faire | Réception reconfigurée, test de liaison et diagnostic d’authentification |
 
-La V6 doit être installée sur les deux appareils. Elle conserve l'association Bluetooth enregistrée mais utilise une nouvelle version du protocole. Les APK sont des builds debug ; vérifiez la signature et testez sur appareils secondaires avant usage réel.
+La V7 doit être installée sur les deux appareils. Elle conserve l'association Bluetooth enregistrée mais utilise une nouvelle version du protocole. Les APK sont des builds debug ; vérifiez la signature et testez sur appareils secondaires avant usage réel.
