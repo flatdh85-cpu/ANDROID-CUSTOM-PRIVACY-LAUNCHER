@@ -10,4 +10,8 @@
 | [V6](V6/README.md) | Disponible, tests physiques à faire | Sonde Panic, découverte Wi-Fi Direct et notifications |
 | [V7](V7/README.md) | Disponible, tests physiques à faire | Réception reconfigurée, test de liaison et diagnostic d’authentification |
 
-La V7 doit être installée sur les deux appareils. Elle conserve l'association Bluetooth enregistrée mais utilise une nouvelle version du protocole. Les APK sont des builds debug ; vérifiez la signature et testez sur appareils secondaires avant usage réel.
+| [V8](V8/README.md) | Disponible, essais physiques requis | Trois applications, LocalSend autonome, Android 6 et Panic avec auto-validation facultative |
+
+La V8 remplace le transport radio maison par LocalSend autonome et découple Panic des sauvegardes. [Guide V8](../docs/PHONE_PAIRING.md), [Panic V8](../docs/PANIC.md).
+
+Historique : la V7 devait être installée sur les deux appareils. Elle conserve l'association Bluetooth enregistrée mais utilise une nouvelle version du protocole. Les APK sont des builds debug ; vérifiez la signature et testez sur appareils secondaires avant usage réel.

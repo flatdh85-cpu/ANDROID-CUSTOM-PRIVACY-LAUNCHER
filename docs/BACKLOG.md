@@ -1,21 +1,18 @@
-# Backlog priorisé
+# Backlog V8
 
-## Réalisé dans V1–V7
+## Livré
 
-- Launcher HOME Android 5+, huit raccourcis, thème noir et blanc, diagnostics, photo/vidéo/galerie système.
-- Profils exacts, audit complet, simulation de debloat, journal persistant et export.
-- Copie A↔B chiffrée sur Bluetooth classique ou Wi-Fi Direct, avec reçu SHA-256, reprise par blocs et copies privées consultables. V3 conserve l'ancien mode Wi-Fi local/hotspot.
-- Tentatives périodiques configurables 10/15/20/30 minutes, réception au premier plan et Panic guidé.
+- Accueil de trois applications, raccourcis monochromes, notifications/pastilles, choix HOME et diagnostics.
+- LocalSend autonome ; retrait des services radio maison et de tout écran de synchronisation.
+- Panic sans transfert : applications ciblées, galerie accessible, Minimal OS dernier ; auto-validation facultative par accessibilité.
+- Code du launcher compatible API 21+, dont Android 6 ; limites des applications tierces affichées.
 
-## Priorité immédiate
+## À vérifier physiquement
 
-- Exécuter tous les essais [sur deux téléphones](TEST_PLAN.md), corriger les écarts de permissions et de services selon les modèles.
-- Rendre l'identité du pair Wi-Fi Direct robuste à la randomisation d'adresse radio : QR cryptographique, reconnexion et journal visible des dernières copies.
-- Valider les transports Wi-Fi Direct et Bluetooth classique sur deux appareils ; évaluer BLE pour une découverte moins coûteuse, sans promesse de canal garanti.
-- Permettre un export explicite des copies privées et tester la lecture des formats vidéo utilisés sur les appareils cibles.
+- Android 6 : permissions stockage, raccourcis, notifications, retour HOME et Panic sur galerie jetable.
+- S22/Huawei : dialogues système et auto-validation, interruptions/refus, fonctionnement de LocalSend autonome via Wi-Fi Direct.
+- Versions tierces : BitChat et SimpleX actuels nécessitent Android 8 ; ne pas promettre leur installation sur Android 6.
 
-## Extensions distinctes
+## Hors périmètre actuel
 
-- Caméra et coffre privés chiffrés, indépendants du launcher, après validation du parcours de restauration.
-- Outil ADB legacy puis Shizuku optionnel pour debloat contrôlé sur profils constructeur vérifiés, avec tests de récupération.
-- Dépôt APK Synology signé, contrôle de compatibilité, intégrité et certificats.
+Pas de transfert périodique, de Bluetooth LocalSend ni de reconnexion Wi-Fi Direct intégrée. Les projets caméra/coffre séparés, profils de debloat privilégiés et dépôt Synology restent distincts.

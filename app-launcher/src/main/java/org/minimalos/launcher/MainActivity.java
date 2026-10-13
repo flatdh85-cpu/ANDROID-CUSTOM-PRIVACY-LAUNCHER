@@ -36,10 +36,14 @@ public final class MainActivity extends Activity {
     private TextView systemStatus;
     private LinearLayout notificationList;
     private Button notificationAccess;
+    private final android.os.Handler panicHold = new android.os.Handler(android.os.Looper.getMainLooper());
+    private long panicDown;
+    private final Runnable openPanic = () -> startActivity(new Intent(this, PanicActivity.class).putExtra("execute", true));
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
         getWindow().setStatusBarColor(Ui.color(this, R.color.background));
+        BootReceiver.retireTransfers(this);
         setContentView(buildContent());
     }
 
@@ -51,6 +55,7 @@ public final class MainActivity extends Activity {
     }
 
     @Override protected void onPause() {
+        panicHold.removeCallbacks(openPanic);
         CommunicationNotifications.observe(null);
         super.onPause();
     }
@@ -59,6 +64,7 @@ public final class MainActivity extends Activity {
         // Un launcher HOME ne doit pas se fermer vers une activité inconnue.
     }
 
+    @android.annotation.SuppressLint("ClickableViewAccessibility") // Touch listener only cancels the timer; Button retains its normal click/long-click accessibility actions.
     private View buildContent() {
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
@@ -90,14 +96,14 @@ public final class MainActivity extends Activity {
         root.addView(systemStatus, statusParams);
 
         GridLayout grid = new GridLayout(this);
-        grid.setColumnCount(2);
+        grid.setColumnCount(3);
         grid.setUseDefaultMargins(false);
         for (AppEntry entry : AppCatalog.entries()) {
             AppTile tile = new AppTile(this, entry);
             tiles.add(tile);
             GridLayout.LayoutParams params = new GridLayout.LayoutParams();
             params.width = 0;
-            params.height = Ui.dp(this, 112);
+            params.height = Ui.dp(this, 128);
             params.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
             params.setMargins(Ui.dp(this, 4), Ui.dp(this, 4), Ui.dp(this, 4), Ui.dp(this, 4));
             grid.addView(tile, params);
@@ -114,33 +120,21 @@ public final class MainActivity extends Activity {
         root.addView(notificationList, Ui.matchWrap());
 
         LinearLayout mediaRow = new LinearLayout(this);
-        mediaRow.setOrientation(LinearLayout.HORIZONTAL);
-        addMediaButton(mediaRow, R.string.photo, MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA);
-        addMediaButton(mediaRow, R.string.video, MediaStore.INTENT_ACTION_VIDEO_CAMERA);
-        Button gallery = Ui.button(this, getString(R.string.gallery));
-        gallery.setTextSize(12);
-        gallery.setOnClickListener(view -> openMedia(new Intent(Intent.ACTION_VIEW,
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI), R.string.gallery));
-        mediaRow.addView(gallery, new LinearLayout.LayoutParams(0,
-                ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        addAction(mediaRow, "Photo", R.drawable.ic_photo, () -> openMedia(new Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA), R.string.photo));
+        addAction(mediaRow, "Vidéo", R.drawable.ic_video, () -> openMedia(new Intent(MediaStore.INTENT_ACTION_VIDEO_CAMERA), R.string.video));
+        addAction(mediaRow, "Galerie", R.drawable.ic_gallery, () -> openMedia(new Intent(Intent.ACTION_VIEW, MediaStore.Images.Media.EXTERNAL_CONTENT_URI), R.string.gallery));
         root.addView(mediaRow, Ui.matchWrap());
-
         LinearLayout settingsRow = new LinearLayout(this);
-        settingsRow.setOrientation(LinearLayout.HORIZONTAL);
-        addSettingsButton(settingsRow, R.string.wifi, Settings.ACTION_WIFI_SETTINGS);
-        addSettingsButton(settingsRow, R.string.bluetooth, Settings.ACTION_BLUETOOTH_SETTINGS);
-        addSettingsButton(settingsRow, R.string.location, Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+        addAction(settingsRow, getString(R.string.wifi), R.drawable.ic_wifi, () -> openSettings(Settings.ACTION_WIFI_SETTINGS));
+        addAction(settingsRow, getString(R.string.bluetooth), R.drawable.ic_bluetooth, () -> openSettings(Settings.ACTION_BLUETOOTH_SETTINGS));
+        addAction(settingsRow, getString(R.string.location), R.drawable.ic_location, () -> openSettings(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
         root.addView(settingsRow, Ui.matchWrap());
-
-        Button internet = Ui.button(this, getString(R.string.internet));
-        internet.setOnClickListener(view -> {
-            try {
-                startActivity(Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_BROWSER));
-            } catch (ActivityNotFoundException unavailable) {
-                Toast.makeText(this, "Aucun navigateur installé", Toast.LENGTH_SHORT).show();
-            }
+        LinearLayout internetRow = new LinearLayout(this);
+        addAction(internetRow, getString(R.string.internet), R.drawable.ic_internet, () -> {
+            try { startActivity(Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_BROWSER)); }
+            catch (ActivityNotFoundException unavailable) { Toast.makeText(this, "Aucun navigateur installé", Toast.LENGTH_SHORT).show(); }
         });
-        root.addView(internet, Ui.matchWrap());
+        root.addView(internetRow, Ui.matchWrap());
 
         Button diagnostics = Ui.button(this, getString(R.string.diagnostics));
         diagnostics.setOnClickListener(view -> startActivity(new Intent(this, DiagnosticsActivity.class)));
@@ -152,18 +146,27 @@ public final class MainActivity extends Activity {
         chooseHome.setOnClickListener(view -> openSettings(Settings.ACTION_HOME_SETTINGS));
         root.addView(chooseHome, Ui.matchWrap());
 
-        Button sync = Ui.button(this, "Copie entre téléphones");
-        sync.setOnClickListener(view -> startActivity(new Intent(this, SyncActivity.class)));
-        root.addView(sync, Ui.matchWrap());
-
-        Button panic = Ui.button(this, "Panic — maintenir");
+        Button panic = Ui.button(this, "Panic — maintenir 3 secondes");
+        android.graphics.drawable.GradientDrawable panicBackground = new android.graphics.drawable.GradientDrawable();
+        panicBackground.setColor(android.graphics.Color.WHITE); panicBackground.setCornerRadius(Ui.dp(this, 20));
+        panic.setBackground(panicBackground); panic.setTextColor(android.graphics.Color.BLACK);
+        panic.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         panic.setOnClickListener(view -> new AlertDialog.Builder(this)
                 .setTitle(R.string.panic_title)
-                .setMessage("Maintenez le bouton pour ouvrir la procédure Panic et ses confirmations Android.")
+                .setMessage(PanicAutomation.enabled(this) ? "L’auto-validation est activée. Maintenez Panic pour supprimer les trois applications, la galerie et Minimal OS sans sauvegarde." : "Maintenez le bouton pour ouvrir Panic. Vous pourrez y configurer l’auto-validation des confirmations Android.")
                 .setPositiveButton(R.string.understood, null)
                 .show());
+        panic.setOnTouchListener((view, event) -> {
+            if (event.getActionMasked() == android.view.MotionEvent.ACTION_DOWN) panicDown = android.os.SystemClock.elapsedRealtime();
+            if (event.getActionMasked() == android.view.MotionEvent.ACTION_UP || event.getActionMasked() == android.view.MotionEvent.ACTION_CANCEL
+                    || event.getX() < 0 || event.getX() > view.getWidth() || event.getY() < 0 || event.getY() > view.getHeight()) {
+                panicHold.removeCallbacks(openPanic); panicDown = 0;
+            }
+            return false;
+        });
         panic.setOnLongClickListener(view -> {
-            startActivity(new Intent(this, PanicActivity.class));
+            long elapsed = panicDown == 0 ? 0 : android.os.SystemClock.elapsedRealtime() - panicDown;
+            panicHold.postDelayed(openPanic, Math.max(0, 3000 - elapsed));
             return true;
         });
         root.addView(panic, Ui.matchWrap());
@@ -171,19 +174,18 @@ public final class MainActivity extends Activity {
         return scroll;
     }
 
-    private void addSettingsButton(LinearLayout row, int label, String action) {
-        Button button = Ui.button(this, getString(label));
-        button.setTextSize(12);
-        button.setOnClickListener(view -> openSettings(action));
-        row.addView(button, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
-    }
-
-    private void addMediaButton(LinearLayout row, int label, String action) {
-        Button button = Ui.button(this, getString(label));
-        button.setTextSize(12);
-        button.setOnClickListener(view -> openMedia(new Intent(action), label));
-        row.addView(button, new LinearLayout.LayoutParams(0,
-                ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+    private void addAction(LinearLayout row, String title, int drawable, Runnable action) {
+        LinearLayout tile = new LinearLayout(this); tile.setOrientation(LinearLayout.VERTICAL);
+        tile.setGravity(Gravity.CENTER); tile.setBackgroundResource(R.drawable.tile_background);
+        tile.setFocusable(true); tile.setClickable(true); tile.setContentDescription(title);
+        ImageView icon = new ImageView(this); icon.setImageResource(drawable);
+        icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        tile.addView(icon, new LinearLayout.LayoutParams(Ui.dp(this, 26), Ui.dp(this, 26)));
+        TextView label = Ui.text(this, title, 13, Ui.color(this, R.color.ink)); label.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams labelParams = Ui.matchWrap(); labelParams.topMargin = Ui.dp(this, 8); tile.addView(label, labelParams);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, Ui.dp(this, 86), 1);
+        int gap = Ui.dp(this, 4); params.setMargins(gap, gap, gap, gap); row.addView(tile, params);
+        tile.setOnClickListener(view -> action.run());
     }
 
     private void openMedia(Intent intent, int label) {
@@ -280,6 +282,12 @@ public final class MainActivity extends Activity {
 
     private void launch(AppEntry entry, PackageState state) {
         if (state == null || !state.installed()) {
+            if (android.os.Build.VERSION.SDK_INT < AppCatalog.currentMinimumSdk(entry)) {
+                new AlertDialog.Builder(this).setTitle(entry.label())
+                        .setMessage("La version actuelle de cette application exige Android 8 ou plus. Minimal OS fonctionne sur Android 6, mais ne peut pas rendre une application tierce incompatible installable.")
+                        .setPositiveButton(R.string.understood, null).show();
+                return;
+            }
             new AlertDialog.Builder(this)
                     .setTitle(getString(R.string.missing_title, entry.label()))
                     .setMessage(R.string.missing_message)
@@ -317,9 +325,9 @@ public final class MainActivity extends Activity {
             ImageView icon = new ImageView(context);
             icon.setImageResource(entry.iconRes());
             icon.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
-            addView(icon, new LinearLayout.LayoutParams(Ui.dp(context, 40), Ui.dp(context, 40)));
+            addView(icon, new LinearLayout.LayoutParams(Ui.dp(context, 32), Ui.dp(context, 32)));
 
-            TextView label = Ui.text(context, entry.label(), 16, Ui.color(context, R.color.ink));
+            TextView label = Ui.text(context, entry.label(), 14, Ui.color(context, R.color.ink));
             label.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
             label.setGravity(Gravity.CENTER);
             addView(label, Ui.matchWrap());
@@ -344,6 +352,9 @@ public final class MainActivity extends Activity {
             PackageState state = packageState;
             int statusText = state == null || !state.installed() ? R.string.not_installed
                     : state.enabled() ? R.string.available : R.string.disabled;
+            if ((state == null || !state.installed()) && android.os.Build.VERSION.SDK_INT < AppCatalog.currentMinimumSdk(entry)) {
+                status.setText(R.string.requires_android_eight); setContentDescription(entry.label() + ", " + status.getText()); return;
+            }
             status.setText(badge > 0 ? getResources().getQuantityString(R.plurals.tile_status_notifications,
                     badge, getString(statusText), badge) : getString(statusText));
             setContentDescription(entry.label() + ", " + status.getText());

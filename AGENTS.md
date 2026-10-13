@@ -232,3 +232,12 @@ Briar peut rester disponible comme messagerie indépendante, mais **ne pas suppo
 ### 12.8 Ordre de développement
 
 Ajouter au backlog **après le MVP launcher et la restauration fiable** : (1) caméra + coffre privé, (2) transfert chiffré A→B, (3) réplication A↔B incrémentale, (4) déclencheur périodique ~30 min, (5) déclencheur Panic, (6) tests sur deux appareils physiques. Fournir protocole, schémas d'état, tests unitaires et intégration, et documentation des permissions avant toute promesse de fonctionnement autonome.
+
+
+## 13. Directive utilisateur V8 — périmètre courant
+
+Les dernières demandes explicites remplacent les points incompatibles précédents : accueil LocalSend/BitChat/SimpleX uniquement ; retrait des transferts maison et de la planification ; LocalSend autonome pour simplifier au maximum. Le launcher doit rester utilisable sous Android 6. Les sources actuelles de BitChat et SimpleX exigent Android 8 : afficher la limite, ne pas inventer leur compatibilité. LocalSend 1.17.0 déclare API 21 minimum.
+
+Panic supprime les trois applications ciblées présentes, même préexistantes, la galerie accessible et Minimal OS en dernier, sans copie ni sonde. L’utilisateur demande l’auto-acceptation : service d’accessibilité facultatif après consentement et activation Android, limité aux dialogues attendus pendant Panic. Aucun clic générique ni contournement de protection système. Conserver les autres applications et le HOME constructeur ; fenêtres inconnues manuelles, aucune promesse de suppression silencieuse garantie.
+
+Références : `docs/ARCHITECTURE.md`, `docs/PANIC.md`, `docs/COMPATIBILITY.md`, `docs/TEST_PLAN.md`. Distinguer tests cloud et essais Android 6/S22/Huawei.

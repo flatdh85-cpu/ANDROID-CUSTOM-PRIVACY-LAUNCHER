@@ -1,3 +1,5 @@
+> **Historique V3–V7** : ce protocole n’est plus utilisé par les services Android V8. Voir [l’intégration LocalSend actuelle](LOCALSEND.md). Les sources du noyau restent pour les anciens fichiers/tests.
+
 # Protocole de copie directe V7
 
 La V7 exige le même APK sur les deux téléphones. Elle utilise Bluetooth classique RFCOMM sans nouvel appairage demandé par l'application à chaque copie, ou Wi-Fi Direct sur un groupe P2P local. Aucun Wi-Fi commun, hotspot ou Internet n'est nécessaire. Les permissions et confirmations initiales Android restent obligatoires ; la création d'un groupe Wi-Fi Direct peut aussi nécessiter un consentement système ultérieur.

@@ -52,4 +52,6 @@
     <string name="panic_title">Préflight Panic</string>
     <string name="understood">Compris</string>
     <string name="back">Retour</string>
+    <string name="panic_accessibility_description">Valide les confirmations système de désinstallation et de suppression de galerie uniquement pendant un Panic lancé par vous. Peut supprimer définitivement vos photos, vidéos et les données de LocalSend, BitChat, SimpleX et Minimal OS. Aucun clic hors de cette procédure, aucune collecte ni transmission du contenu de l’écran. Désactivable dans les paramètres Android.</string>
+    <string name="requires_android_eight">Version actuelle : Android 8+</string>
 </resources>

@@ -6,5 +6,5 @@
     <color name="muted">#FFBDBDBD</color>
     <color name="accent">#FFFFFFFF</color>
     <color name="danger">#FFFFFFFF</color>
-    <color name="outline">#FF666666</color>
+    <color name="outline">#FF333333</color>
 </resources>

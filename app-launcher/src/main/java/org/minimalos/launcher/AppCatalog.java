@@ -12,27 +12,24 @@ public final class AppCatalog {
 
     public static List<AppEntry> entries() {
         return Collections.unmodifiableList(Arrays.asList(
-                new AppEntry("Telegram", "org.telegram.messenger", R.drawable.ic_telegram),
-                new AppEntry("Canta", "org.samo_lego.canta", R.drawable.ic_canta),
-                new AppEntry("Shizuku", "moe.shizuku.privileged.api", R.drawable.ic_shizuku),
-                new AppEntry("SimpleX Chat", "chat.simplex.app", R.drawable.ic_simplex),
-                new AppEntry("Briar", "org.briarproject.briar.android", R.drawable.ic_briar),
                 new AppEntry("LocalSend", "org.localsend.localsend_app", R.drawable.ic_localsend),
-                new AppEntry("Bridgefy", "me.bridgefy.main", R.drawable.ic_launcher),
-                new AppEntry("BitChat", "com.bitchat.android", R.drawable.ic_launcher)
+                new AppEntry("BitChat", "com.bitchat.droid", R.drawable.ic_bitchat),
+                new AppEntry("SimpleX", "chat.simplex.app", R.drawable.ic_simplex)
         ));
     }
 
+    /** Minimum declared by current upstream releases; an already installed legacy app can still be opened. */
+    public static int currentMinimumSdk(AppEntry entry) {
+        return entry.packageName().equals("chat.simplex.app") || entry.packageName().equals("com.bitchat.droid") ? 26 : 21;
+    }
+
     public static String resolvePackageName(Context context, AppEntry entry) {
-        if (!entry.label().equals("Bridgefy") && !entry.label().equals("BitChat")) return entry.packageName();
+        if (!entry.label().equals("BitChat")) return entry.packageName();
         PackageManager manager = context.getPackageManager();
         try { manager.getApplicationInfo(entry.packageName(), 0); return entry.packageName(); }
         catch (PackageManager.NameNotFoundException ignored) { }
-        String token = entry.label().toLowerCase(java.util.Locale.ROOT);
-        for (ApplicationInfo app : manager.getInstalledApplications(0)) {
-            String label = manager.getApplicationLabel(app).toString().toLowerCase(java.util.Locale.ROOT);
-            if (label.equals(token) || label.startsWith(token + " ")) return app.packageName;
-        }
+        try { manager.getApplicationInfo("com.bitchat.android", 0); return "com.bitchat.android"; }
+        catch (PackageManager.NameNotFoundException ignored) { }
         return entry.packageName();
     }
 }

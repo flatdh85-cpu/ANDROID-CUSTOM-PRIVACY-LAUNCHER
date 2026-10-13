@@ -1,21 +1,23 @@
 # Minimal OS
 
-Minimal OS est un launcher Android sobre destiné aux téléphones modestes. La V7 affiche huit raccourcis, leurs notifications, un bouton Internet et une copie bidirectionnelle chiffrée des photos et vidéos par **Bluetooth direct** ou **Wi-Fi Direct**. Aucun Wi-Fi commun ni hotspot n'est nécessaire. La V7 corrige le changement de récepteur Bluetooth/Wi-Fi Direct et accepte un code simple de 5 chiffres et ajoute un test de liaison sans copie ; Panic exige une réponse authentifiée avant les confirmations Android ; l'audit et les profils de V2 restent disponibles.
+Launcher Android natif, noir et blanc. La **V8** garde **LocalSend, BitChat et SimpleX**, les notifications et pastilles, des raccourcis photo/vidéo/galerie/réseau/Internet, le choix HOME et les diagnostics.
 
-## Télécharger
+**[Télécharger l’APK V8](https://github.com/flatdh85-cpu/ANDROID-CUSTOM-PRIVACY-LAUNCHER/raw/refs/heads/main/build/V8/Minimal-OS-V8-debug.apk)** · [Versions précédentes](build/README.md)
 
-La version courante est [`build/V7/Minimal-OS-V7-debug.apk`](build/V7/Minimal-OS-V7-debug.apk). **Installez V7 sur les deux téléphones** ; elle ne synchronise pas avec V6. Les versions précédentes restent dans [`build/`](build/README.md). Consultez [le guide A↔B](docs/PHONE_PAIRING.md) avant d'utiliser Panic.
+Panic supprime les applications ciblées installées, la galerie publique accessible, puis Minimal OS et ses copies privées. **Il ne contacte aucun pair et ne fait aucune sauvegarde.** Le launcher constructeur reste disponible. Une auto-validation des dialogues connus peut être activée une fois dans les paramètres d’accessibilité Android : après cette configuration, un appui long lance Panic directement. Les dialogues système peuvent apparaître brièvement ; une fenêtre inconnue ou protégée reste à valider manuellement. [Configuration et limites](docs/PANIC.md).
+
+**LocalSend s’utilise seul**, depuis son raccourci. Aucune association, synchronisation planifiée ou réception réseau ne tourne dans Minimal OS. L’ancien écran « Copie entre téléphones » est supprimé. LocalSend nécessite une liaison IP et ne transporte pas les fichiers par Bluetooth ; son fonctionnement sur un groupe Wi-Fi Direct dépend des téléphones. [Guide](docs/PHONE_PAIRING.md).
+
+**Android 6** : le launcher conserve `minSdk 21` et les API récentes sont conditionnelles. LocalSend 1.17.0 déclare API 21 minimum. Les sources actuelles de **BitChat et SimpleX exigent API 26 / Android 8** : leur compatibilité Android 6 ne peut pas être garantie par le launcher et cette limite est affichée sur les raccourcis absents. [Compatibilité et sources](docs/COMPATIBILITY.md).
 
 ## Construire
 
-Prérequis : JDK 17 ou 21, Android SDK Platform 35 et Build Tools 35.0.0. Définir `ANDROID_HOME` ou créer un `local.properties` non suivi contenant `sdk.dir=/chemin/du/sdk`.
+JDK 17/21, Android SDK Platform 35 et Build Tools 35.0.0. Définir `ANDROID_HOME` ou `sdk.dir` dans un `local.properties` non suivi.
 
 ```sh
-./gradlew testDebugUnitTest
-./gradlew lintDebug
-./gradlew assembleDebug
+./gradlew test testDebugUnitTest lintDebug assembleDebug
 ```
 
-L'APK est produit dans `app-launcher/build/outputs/apk/debug/`. Installez-le uniquement sur un appareil déjà configuré, puis utilisez « Choisir le launcher HOME » : Android affiche son sélecteur officiel. Minimal OS ne modifie jamais le launcher constructeur.
+APK produit dans `app-launcher/build/outputs/apk/debug/`. Android 5.0+ pour le launcher ; compatibilité des trois applications tierces à vérifier séparément. La signature debug V8 permet une mise à jour depuis V7.
 
-Consultez [l'architecture](docs/ARCHITECTURE.md), [la compatibilité](docs/COMPATIBILITY.md), [les règles de sécurité](docs/SAFETY.md), [la récupération](docs/RECOVERY.md), [le protocole de transfert](docs/TRANSFER_PROTOCOL.md) et [le plan de test](docs/TEST_PLAN.md). Les transports radio et Panic n'ont pas encore été validés sur deux appareils physiques.
+[Architecture](docs/ARCHITECTURE.md) · [LocalSend](docs/LOCALSEND.md) · [Limites](docs/SAFETY.md) · [Tests](docs/TEST_PLAN.md) · [Récupération](docs/RECOVERY.md).

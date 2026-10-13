@@ -1,27 +1,20 @@
-# Compatibilité
+# Compatibilité V8
 
-## Launcher
-
-| Plateforme | État V7 | Limites à vérifier sur appareil |
+| Composant | Minimum déclaré | Android 6 / API 23 |
 | --- | --- | --- |
-| Android 5–7 | Compilable, API minimale 21 | Sélecteur HOME, stockage partagé, permissions et réception au premier plan |
-| Android 8–10 | Compilable | Restrictions EMUI/MIUI, suppression MediaStore Android 10, service après redémarrage |
-| Android 11–15 | Compilable | Autorisation complète des médias, confirmations de suppression et politiques de batterie |
+| Minimal OS V8 | API 21 / Android 5 | Code et manifeste compatibles ; essais physiques requis |
+| LocalSend 1.17.0 | API 21 / Android 5 | Compatible selon le minimum déclaré ; installer séparément et tester |
+| BitChat, source actuelle | API 26 / Android 8 | Non compatible |
+| SimpleX, source stable actuelle | API 26 / Android 8 | Non compatible |
 
-La compilation prouve la compatibilité des API, pas le fonctionnement sur chaque firmware. Wiko Lenny 3, Huawei P30 Lite MAR-LX1B, Samsung One UI et Xiaomi MIUI/HyperOS exigent des tests physiques. La cible de moins de 15 Mo PSS au repos n'est pas encore mesurée. Les intents caméra/vidéo/galerie dépendent d'une application système compatible.
+Les raccourcis des applications absentes affichent leur limite. Une ancienne version déjà installée peut être ouverte, sans garantie de compatibilité ou de sécurité de cette version. Minimal OS ne redistribue ni ne rétroporte ces applications.
 
-Les pastilles et la liste de notifications nécessitent l'accès spécial « notifications » d'Android. Sur certains Android récents, un APK installé hors magasin peut devoir être autorisé dans « paramètres restreints » avant que ce réglage soit disponible. Les notifications sont facultatives et n'affectent pas la copie des médias.
+Sources consultées pour cette livraison :
 
-L'inventaire Phase 2 déclare `QUERY_ALL_PACKAGES`. Il convient à une distribution directe de cet outil d'audit, mais Google Play restreint cette permission. Une publication Play devra confirmer l'éligibilité ou utiliser un inventaire fourni par ADB/Shizuku dans une phase ultérieure.
+- [LocalSend v1.17.0 — minSdkVersion 21](https://github.com/localsend/localsend/blob/v1.17.0/app/android/app/build.gradle)
+- [BitChat — minSdk 26](https://github.com/permissionlesstech/bitchat-android/blob/main/gradle/libs.versions.toml)
+- [SimpleX — minSdk 26](https://github.com/simplex-chat/simplex-chat/blob/stable/apps/multiplatform/android/build.gradle.kts)
 
-## Applications affichées
+Android 6 dispose de l’accès stockage et du service d’accessibilité utilisés par Panic. L’accès complet aux médias et l’activation de l’accessibilité doivent être accordés une fois dans Android. Les dialogues constructeur peuvent empêcher l’auto-validation et rester manuels. Aucune suppression silencieuse privilégiée n’est promise.
 
-Le launcher affiche Telegram, Canta, Shizuku, SimpleX Chat, Briar, LocalSend, Bridgefy et BitChat. Pour Bridgefy et BitChat, il cherche aussi l'application installée par son nom affiché lorsque l'identifiant du package diffère. Il ne garantit ni leur disponibilité, ni la compatibilité de leur version courante avec Android 5, ni leur provenance. Une absence est signalée sans proposer de binaire arbitraire.
-
-Shizuku et Canta restent facultatifs. Shizuku n'accorde aucun privilège au launcher. Briar est lancé comme application indépendante ; aucune API privée ou injection de contenu n'est supposée. Les photos/vidéos peuvent être copiées par Bluetooth ou Wi-Fi Direct sans ces applications.
-
-## Variantes futures
-
-Si les dépendances des phases ultérieures ne peuvent plus maintenir API 21, une variante `legacy` conservera le protocole de profils et de journal partagé avec une variante `modern`. Cette séparation n'est pas utile tant que le MVP reste basé sur le framework Android.
-
-Retour terrain à investiguer : Bluetooth interrompu pendant l’authentification et récepteur Wi-Fi Direct inaccessible entre un S22 et un Huawei sous EMUI 10 en V6. Les corrections V7 sont compilées et testées sur JVM ; leur effet sur ces deux appareils reste à confirmer.
+Le S22 et le Huawei EMUI 10 ainsi qu’un appareil Android 6 doivent être testés physiquement. Le code conditionne les API récentes à la version Android ; lint n’est pas une preuve d’exécution sur appareil. Aucun profil constructeur non vérifié n’est appliqué. La compatibilité Wi-Fi Direct de LocalSend autonome dépend des appareils et ne peut pas être déduite du seul numéro Android.
