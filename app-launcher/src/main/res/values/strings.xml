@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Minimal OS</string>
+    <string name="home_subtitle">Communication essentielle</string>
+    <string name="not_installed">Non installée</string>
+    <string name="disabled">Désactivée</string>
+    <string name="available">Disponible</string>
+    <string name="cannot_open">Impossible d’ouvrir %1$s.</string>
+    <string name="missing_title">%1$s n’est pas installée</string>
+    <string name="missing_message">Minimal OS ne télécharge pas de binaire arbitraire. Vérifiez une source officielle et la compatibilité de votre version Android.</string>
+    <string name="open_app_settings">Réglages des applications</string>
+    <string name="cancel">Fermer</string>
+    <string name="choose_home">Choisir le launcher HOME</string>
+    <string name="diagnostics">Diagnostics</string>
+    <string name="wifi">Wi-Fi</string>
+    <string name="bluetooth">Bluetooth</string>
+    <string name="location">Localisation</string>
+    <string name="battery_format">Batterie %1$d%%</string>
+    <string name="network_connected">Réseau connecté</string>
+    <string name="network_disconnected">Réseau indisponible</string>
+    <string name="system_status_format">%1$s · %2$s</string>
+    <string name="diagnostics_title">Diagnostic de l’appareil</string>
+    <string name="device_format">Fabricant : %1$s\nModèle : %2$s\nAndroid API : %3$d\nVersion constructeur : %4$s\nFingerprint : %5$s</string>
+    <string name="apps_status_title">Applications reconnues</string>
+    <string name="audit_notice">Phase 1 — mode audit uniquement. Aucun package n’est désactivé ou désinstallé.</string>
+    <string name="back">Retour</string>
+</resources>
