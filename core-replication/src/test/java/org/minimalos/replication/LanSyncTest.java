@@ -67,7 +67,28 @@ public class LanSyncTest {
         try {
             exchange(a, b, LanSync.parseKey(LanSync.newKey()), LanSync.parseKey(LanSync.newKey()));
             fail("Pair non authentifié accepté");
-        } catch (IOException expected) { assertTrue(b.files.isEmpty()); }
+        } catch (IOException expected) {
+            assertTrue(expected.getMessage().contains("Code partagé"));
+            assertTrue(b.files.isEmpty());
+        }
+    }
+
+    @Test public void reportsReceiverGalleryFailureInsteadOfClosingWithoutReason() throws Exception {
+        Memory a = new Memory();
+        a.put("A1");
+        MediaRepository unavailable = new MediaRepository() {
+            @Override public List<MediaRecord> list() throws IOException { throw new IOException("Accès galerie refusé"); }
+            @Override public InputStream open(MediaRecord record) throws IOException { throw new IOException("Indisponible"); }
+            @Override public PendingWrite begin(MediaRecord record) throws IOException { throw new IOException("Indisponible"); }
+        };
+        byte[] key = LanSync.parseKey(LanSync.newKey());
+        try {
+            exchange(a, unavailable, key, key);
+            fail("La galerie indisponible du récepteur a été ignorée");
+        } catch (IOException expected) {
+            assertTrue(expected.getMessage(), expected.getMessage().contains("Galerie du pair indisponible"));
+            assertTrue(expected.getMessage().contains("Accès galerie refusé"));
+        }
     }
 
     @Test public void panicProbeRequiresTheSameCode() throws Exception {
@@ -131,7 +152,7 @@ public class LanSyncTest {
         assertEquals(video.length - 65536, b.writtenBytes);
     }
 
-    private static SyncResult exchange(Memory a, Memory b, byte[] clientKey, byte[] serverKey) throws Exception {
+    private static SyncResult exchange(Memory a, MediaRepository b, byte[] clientKey, byte[] serverKey) throws Exception {
         try (ServerSocket listener = new ServerSocket(0)) {
             FutureTask<Void> server = new FutureTask<>(() -> {
                 try (Socket socket = listener.accept()) {

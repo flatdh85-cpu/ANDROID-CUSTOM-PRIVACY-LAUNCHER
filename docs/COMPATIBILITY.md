@@ -2,7 +2,7 @@
 
 ## Launcher
 
-| Plateforme | État V4 | Limites à vérifier sur appareil |
+| Plateforme | État V5 | Limites à vérifier sur appareil |
 | --- | --- | --- |
 | Android 5–7 | Compilable, API minimale 21 | Sélecteur HOME, stockage partagé, permissions et réception au premier plan |
 | Android 8–10 | Compilable | Restrictions EMUI/MIUI, suppression MediaStore Android 10, service après redémarrage |

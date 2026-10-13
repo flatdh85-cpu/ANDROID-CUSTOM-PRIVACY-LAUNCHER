@@ -30,6 +30,7 @@ public final class SyncActivity extends Activity {
     private Spinner interval;
     private EditText code;
     private TextView status;
+    private TextView receiverStatus;
     private static final int[] INTERVALS = {10, 15, 20, 30};
 
     @Override protected void onCreate(Bundle state) {
@@ -77,18 +78,12 @@ public final class SyncActivity extends Activity {
         Button listen = Ui.button(this, "Démarrer la réception directe");
         listen.setOnClickListener(view -> {
             if (!permissionsGranted() || !storageGranted() || !saveSettings()) return;
-            if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
-                    != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 46);
-                status.setText("Accordez la notification, puis relancez la réception.");
-                return;
-            }
             stopService(new Intent(this, ReceiverService.class));
             try {
                 Intent intent = new Intent(this, ReceiverService.class);
                 if (Build.VERSION.SDK_INT >= 26) startForegroundService(intent); else startService(intent);
                 PeerSettings.prefs(this).edit().putBoolean("receiver_enabled", true).apply();
-                status.setText("Réception " + selectedTransport() + " lancée. Gardez sa notification active.");
+                status.setText("Réception " + selectedTransport() + " lancée. Gardez ce service actif sur le pair.");
             } catch (RuntimeException blocked) { status.setText("Réception refusée : " + blocked.getMessage()); }
         });
         root.addView(listen, Ui.matchWrap());
@@ -131,8 +126,23 @@ public final class SyncActivity extends Activity {
         String error = PeerSettings.prefs(this).getString("last_error", null);
         status = Ui.text(this, error == null ? lastText : lastText + "\nDernier échec : " + error, 15, -1);
         root.addView(status, Ui.matchWrap());
+        receiverStatus = Ui.text(this, "", 14, -1);
+        root.addView(receiverStatus, Ui.matchWrap());
+        Button refresh = Ui.button(this, "Actualiser l’état du récepteur");
+        refresh.setOnClickListener(view -> refreshReceiverStatus());
+        root.addView(refresh, Ui.matchWrap());
         setContentView(scroll);
         showSavedPeer();
+        refreshReceiverStatus();
+    }
+    @Override protected void onResume() {
+        super.onResume();
+        refreshReceiverStatus();
+    }
+    private void refreshReceiverStatus() {
+        if (receiverStatus == null) return;
+        String error = PeerSettings.prefs(this).getString("last_receiver_error", null);
+        receiverStatus.setText(error == null ? "" : "État du récepteur : " + error);
     }
     private Spinner spinner(String[] items) {
         Spinner spinner = new Spinner(this);

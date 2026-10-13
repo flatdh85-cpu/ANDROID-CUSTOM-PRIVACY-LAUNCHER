@@ -32,8 +32,13 @@ final class SyncWorker {
                     .remove("last_error").apply();
             return result;
         } catch (Exception failure) {
-            PeerSettings.prefs(context).edit().putString("last_error", failure.getMessage()).apply();
-            throw failure;
+            Exception useful = failure;
+            String message = failure.getMessage();
+            if (PeerSettings.BLUETOOTH.equals(PeerSettings.transport(context)) && message != null
+                    && (message.contains("read failed") || message.contains("socket might closed")))
+                useful = new IOException("Liaison Bluetooth fermée : vérifiez le code et le pair sélectionné sur les deux téléphones, puis le dernier échec du récepteur", failure);
+            PeerSettings.prefs(context).edit().putString("last_error", useful.getMessage()).apply();
+            throw useful;
         }
     }
     static void probe(Context context) throws Exception {

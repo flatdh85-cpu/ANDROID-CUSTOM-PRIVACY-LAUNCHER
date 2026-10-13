@@ -1,12 +1,12 @@
-# Plan de test V4
+# Plan de test V5
 
 La compilation et les tests automatiques couvrent la copie A↔B sur sockets et sur flux comme Bluetooth, le rejet d'un mauvais code, la reprise à la limite d'un bloc, et la protection des identifiants de fichiers. Lint doit réussir. Les scénarios radio exigent deux téléphones physiques ; aucun résultat n'est présumé ici.
 
-1. Installer l'APK V4 sur A et B ; vérifier les huit raccourcis, **Internet**, photo, vidéo, galerie, HOME, le thème, le launcher constructeur et les permissions médias complètes.
-2. Associer A et B via Android Bluetooth. Activer la réception sur les deux, sélectionner le pair et le même code, puis créer A1/A2 sur A et B1/B2 sur B. Copier et vérifier que les quatre fichiers sont lisibles sur les deux et ont le même SHA-256. Répéter avec une vidéo volumineuse ; mesurer le débit.
+1. Installer l'APK V5 sur A et B ; vérifier les huit raccourcis, **Internet**, photo, vidéo, galerie, HOME, le thème, le launcher constructeur et les permissions médias complètes.
+2. Associer A et B via Android Bluetooth. Activer la réception sur les deux, sélectionner le pair et le même code, puis créer A1/A2 sur A et B1/B2 sur B. Copier et vérifier que les quatre fichiers sont lisibles sur les deux et ont le même SHA-256. Répéter sans nouvelle demande d'appairage ou de permission par copie, puis avec une vidéo volumineuse ; mesurer le débit.
 3. Refaire le test sur **Wi-Fi Direct**, sans WLAN commun ni hotspot. Vérifier la découverte, la demande de connexion Android, le rôle chef/client et le cas où la copie doit être lancée depuis l'autre téléphone.
 4. Tester les intervalles 10/15/20/30 minutes, la réception active, le redémarrage, l'écran verrouillé et les politiques de batterie EMUI/MIUI. Mesurer les délais réels ; ne pas attendre une cadence exacte.
-5. Couper Bluetooth ou Wi-Fi Direct au milieu d'une vidéo, relancer et vérifier la reprise ; tester stockage saturé, mauvais code, permissions refusées, pair absent et un média modifié pendant le transfert. Aucun échec ne doit afficher « copie vérifiée » ni effacer l'original.
+5. Couper Bluetooth ou Wi-Fi Direct au milieu d'une vidéo, relancer et vérifier la reprise ; tester stockage saturé, mauvais code, permissions refusées sur le récepteur, mauvais appareil sélectionné, pair absent et un média modifié pendant le transfert. Vérifier les messages d'erreur sur les deux téléphones. Aucun échec ne doit afficher « copie vérifiée » ni effacer l'original.
 6. Supprimer localement une copie reçue sur A puis synchroniser : B doit garder son fichier. Confirmer aussi qu'une suppression locale de B ne supprime rien sur A.
 7. Sur appareils secondaires, tester Panic avec pair joignable puis absent, désinstallation refusée, suppression galerie refusée et interruption à chaque étape. Les confirmations Android doivent apparaître ; ne jamais prétendre avoir effacé ce qui subsiste. Ne lancez pas Panic simultanément sur A et B.
 8. Répéter selon les versions disponibles : Android 5/6/7, Android 10 EMUI, Android 11+, Samsung et Xiaomi. Mesurer PSS, batterie et durée des vidéos. Vérifier appels, SMS, données mobiles, Bluetooth, Wi-Fi, GPS, clavier et notifications avant/après.

@@ -26,6 +26,13 @@ public final class ReceiverService extends Service {
     private BroadcastReceiver p2pReceiver;
     private WifiDirectLink p2p;
 
+    private void receiverError(String message) {
+        PeerSettings.prefs(this).edit().putString("last_receiver_error", message).apply();
+    }
+    private void receiverReady() {
+        PeerSettings.prefs(this).edit().remove("last_receiver_error").apply();
+    }
+
     @Override public void onCreate() {
         super.onCreate();
         NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
@@ -48,18 +55,29 @@ public final class ReceiverService extends Service {
     private void listenBluetooth() {
         try (BluetoothServerSocket listener = BluetoothLink.listen()) {
             bluetoothServer = listener;
+            receiverReady();
             while (running) {
                 try (BluetoothSocket socket = listener.accept()) {
-                    if (!PeerSettings.peer(this).equalsIgnoreCase(socket.getRemoteDevice().getAddress())) continue;
-                    // RFCOMM and the shared code both authenticate the peer before accepting media.
+                    String remoteAddress = socket.getRemoteDevice().getAddress();
+                    // The shared code authenticates the peer; the saved radio address is for outgoing calls.
                     LanSync.server(socket.getInputStream(), socket.getOutputStream(),
                             LanSync.parseKey(PeerSettings.code(this)), new GalleryRepository(this));
+                    PeerSettings.prefs(this).edit().putString("last_receiver_peer", remoteAddress).apply();
+                    if (PeerSettings.peer(this).equalsIgnoreCase(remoteAddress)) receiverReady();
+                    else receiverError("Copie reçue du pair authentifié " + remoteAddress
+                            + ". Sélectionnez cette adresse ici pour les copies sortantes.");
                 } catch (Exception failed) {
-                    if (running) android.util.Log.w("MinimalOS", "Session Bluetooth échouée", failed);
+                    if (running) {
+                        receiverError(failed.getMessage() == null ? failed.getClass().getSimpleName() : failed.getMessage());
+                        android.util.Log.w("MinimalOS", "Session Bluetooth échouée", failed);
+                    }
                 }
             }
         } catch (Exception unavailable) {
-            if (running) android.util.Log.e("MinimalOS", "Récepteur Bluetooth indisponible", unavailable);
+            if (running) {
+                receiverError("Récepteur Bluetooth indisponible : " + unavailable.getMessage());
+                android.util.Log.e("MinimalOS", "Récepteur Bluetooth indisponible", unavailable);
+            }
         }
         stopSelf();
     }
@@ -97,15 +115,23 @@ public final class ReceiverService extends Service {
     private void listenWifi(WifiP2pInfo info) {
         try (ServerSocket listener = new ServerSocket(LanSync.PORT, 2, info.groupOwnerAddress)) {
             wifiServer = listener;
+            receiverReady();
             while (running) {
                 try (Socket socket = listener.accept()) {
                     LanSync.server(socket, LanSync.parseKey(PeerSettings.code(this)), new GalleryRepository(this));
+                    receiverReady();
                 } catch (Exception failed) {
-                    if (running) android.util.Log.w("MinimalOS", "Session Wi-Fi Direct échouée", failed);
+                    if (running) {
+                        receiverError(failed.getMessage() == null ? failed.getClass().getSimpleName() : failed.getMessage());
+                        android.util.Log.w("MinimalOS", "Session Wi-Fi Direct échouée", failed);
+                    }
                 }
             }
         } catch (Exception unavailable) {
-            if (running) android.util.Log.e("MinimalOS", "Récepteur Wi-Fi Direct indisponible", unavailable);
+            if (running) {
+                receiverError("Récepteur Wi-Fi Direct indisponible : " + unavailable.getMessage());
+                android.util.Log.e("MinimalOS", "Récepteur Wi-Fi Direct indisponible", unavailable);
+            }
         }
     }
     @Override public int onStartCommand(Intent intent, int flags, int startId) { return START_STICKY; }

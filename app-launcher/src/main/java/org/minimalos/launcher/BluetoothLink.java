@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-/** Classic Bluetooth RFCOMM. Android's system pairing UI establishes radio trust. */
+/** RFCOMM without repeated system pairing prompts; the app authenticates and encrypts each session. */
 @SuppressLint("MissingPermission") // L'activité vérifie BLUETOOTH_CONNECT ; services et jobs capturent SecurityException.
 final class BluetoothLink {
     static final UUID SERVICE = UUID.fromString("919a2e49-1c10-4bbd-b20c-e3c045596257");
@@ -25,11 +25,11 @@ final class BluetoothLink {
     }
     static BluetoothSocket connect(String address) throws IOException {
         BluetoothAdapter adapter = adapter();
-        BluetoothSocket socket = adapter.getRemoteDevice(address).createRfcommSocketToServiceRecord(SERVICE);
+        BluetoothSocket socket = adapter.getRemoteDevice(address).createInsecureRfcommSocketToServiceRecord(SERVICE);
         try { socket.connect(); return socket; }
         catch (IOException failure) { try { socket.close(); } catch (IOException ignored) { } throw failure; }
     }
     static BluetoothServerSocket listen() throws IOException {
-        return adapter().listenUsingRfcommWithServiceRecord("Minimal OS media", SERVICE);
+        return adapter().listenUsingInsecureRfcommWithServiceRecord("Minimal OS media", SERVICE);
     }
 }

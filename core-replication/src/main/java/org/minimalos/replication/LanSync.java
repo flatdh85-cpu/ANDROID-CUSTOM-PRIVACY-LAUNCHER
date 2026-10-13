@@ -25,7 +25,7 @@ import javax.crypto.spec.SecretKeySpec;
 /** Mutually authenticated, encrypted, bidirectional copy over a connected byte stream. */
 public final class LanSync {
     public static final int PORT = 38742;
-    private static final int MAGIC = 0x4d4f5335;
+    private static final int MAGIC = 0x4d4f5336;
     private static final int CHUNK = 64 * 1024;
     private static final int MAX_FILES = 100000;
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -68,15 +68,27 @@ public final class LanSync {
         if (key == null || key.length != 16) throw new IllegalArgumentException("Clé AES-128 requise");
         DataInputStream in = new DataInputStream(input);
         DataOutputStream out = new DataOutputStream(output);
-        if (in.readInt() != MAGIC) throw new IOException("Version de protocole inconnue");
+        authenticateClient(in, out, key);
+    }
+
+    private static byte[][] authenticateClient(DataInputStream in, DataOutputStream out, byte[] key)
+            throws IOException {
+        int version;
+        try { version = in.readInt(); }
+        catch (IOException closed) { throw new IOException("Récepteur fermé avant authentification : vérifiez le pair sélectionné et sa réception active", closed); }
+        if (version != MAGIC) throw new IOException("Versions Minimal OS différentes : installez le même APK sur les deux téléphones");
         out.writeInt(MAGIC);
-        byte[] challenge = readBytes(in, 16);
-        out.write(auth(key, "client", challenge));
-        byte[] replyChallenge = random(16);
-        out.write(replyChallenge);
+        byte[] serverChallenge = readBytes(in, 16);
+        out.write(auth(key, "client", serverChallenge));
+        byte[] clientChallenge = random(16);
+        out.write(clientChallenge);
         out.flush();
-        if (!MessageDigest.isEqual(auth(key, "server", replyChallenge), readBytes(in, 32)))
-            throw new IOException("Pair non authentifié");
+        byte[] answer;
+        try { answer = readBytes(in, 32); }
+        catch (IOException closed) { throw new IOException("Code partagé différent ou récepteur fermé : vérifiez le même code sur les deux téléphones", closed); }
+        if (!MessageDigest.isEqual(auth(key, "server", clientChallenge), answer))
+            throw new IOException("Pair non authentifié : vérifiez le code partagé");
+        return new byte[][]{serverChallenge, clientChallenge};
     }
 
     private static SyncResult run(InputStream input, OutputStream output, byte[] key,
@@ -87,21 +99,15 @@ public final class LanSync {
         byte[] serverChallenge;
         byte[] clientChallenge;
         if (client) {
-            if (in.readInt() != MAGIC) throw new IOException("Version de protocole inconnue");
-            out.writeInt(MAGIC);
-            serverChallenge = readBytes(in, 16);
-            out.write(auth(key, "client", serverChallenge));
-            clientChallenge = random(16);
-            out.write(clientChallenge);
-            out.flush();
-            if (!MessageDigest.isEqual(auth(key, "server", clientChallenge), readBytes(in, 32)))
-                throw new IOException("Pair non authentifié");
+            byte[][] challenges = authenticateClient(in, out, key);
+            serverChallenge = challenges[0];
+            clientChallenge = challenges[1];
         } else {
             serverChallenge = random(16);
             out.writeInt(MAGIC);
             out.write(serverChallenge);
             out.flush();
-            if (in.readInt() != MAGIC) throw new IOException("Version de protocole inconnue");
+            if (in.readInt() != MAGIC) throw new IOException("Versions Minimal OS différentes");
             if (!MessageDigest.isEqual(auth(key, "client", serverChallenge), readBytes(in, 32)))
                 throw new IOException("Pair non authentifié");
             clientChallenge = readBytes(in, 16);
@@ -110,7 +116,20 @@ public final class LanSync {
         }
         byte[] sessionKey = sessionKey(key, serverChallenge, clientChallenge);
         if (socket != null) socket.setSoTimeout(600000);
-        ReplicationManifest local = new ReplicationManifest(repository.list());
+        ReplicationManifest local = null;
+        String localError = null;
+        try { local = new ReplicationManifest(repository.list()); }
+        catch (Exception failure) { localError = failure.getMessage() == null ? failure.getClass().getSimpleName() : failure.getMessage(); }
+        String remoteError;
+        if (client) {
+            writeStatus(out, sessionKey, localError);
+            remoteError = readStatus(in, sessionKey);
+        } else {
+            remoteError = readStatus(in, sessionKey);
+            writeStatus(out, sessionKey, localError);
+        }
+        if (localError != null) throw new IOException("Galerie locale indisponible : " + localError);
+        if (remoteError != null) throw new IOException("Galerie du pair indisponible : " + remoteError);
         ReplicationManifest remote;
         if (client) {
             writeManifest(out, sessionKey, local);
@@ -131,6 +150,25 @@ public final class LanSync {
         for (MediaRecord record : remote.records()) confirmed.add(record.id());
         for (MediaRecord record : plan.sendToRemote()) confirmed.add(record.id());
         return new SyncResult(plan.sendToRemote().size(), plan.requestFromRemote().size(), confirmed);
+    }
+
+    private static void writeStatus(DataOutputStream out, byte[] key, String error) throws IOException {
+        byte[] message = error == null ? new byte[0] : error.getBytes(StandardCharsets.UTF_8);
+        if (message.length > 512) message = copy(message, 512);
+        byte[] iv = random(12);
+        byte[] sealed = crypt(Cipher.ENCRYPT_MODE, key, iv, message);
+        out.write(iv);
+        out.writeInt(sealed.length);
+        out.write(sealed);
+        out.flush();
+    }
+
+    private static String readStatus(DataInputStream in, byte[] key) throws IOException {
+        byte[] iv = readBytes(in, 12);
+        int length = in.readInt();
+        if (length < 16 || length > 528) throw new IOException("État du pair invalide");
+        byte[] message = crypt(Cipher.DECRYPT_MODE, key, iv, readBytes(in, length));
+        return message.length == 0 ? null : new String(message, StandardCharsets.UTF_8);
     }
 
     private static void writeManifest(DataOutputStream out, byte[] key, ReplicationManifest manifest) throws IOException {
