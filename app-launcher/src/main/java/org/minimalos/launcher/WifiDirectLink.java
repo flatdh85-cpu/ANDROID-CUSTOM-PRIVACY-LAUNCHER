@@ -49,6 +49,14 @@ final class WifiDirectLink {
         discovery.await(5, TimeUnit.SECONDS);
         boolean found = false;
         for (int attempt = 0; attempt < 12 && !found; attempt++) {
+            if (attempt == 6) {
+                CountDownLatch retry = new CountDownLatch(1);
+                link.discover(new WifiP2pManager.ActionListener() {
+                    @Override public void onSuccess() { retry.countDown(); }
+                    @Override public void onFailure(int reason) { retry.countDown(); }
+                });
+                retry.await(5, TimeUnit.SECONDS);
+            }
             CountDownLatch listed = new CountDownLatch(1);
             List<WifiP2pDevice> devices = new ArrayList<>();
             link.peers(list -> { devices.addAll(list.getDeviceList()); listed.countDown(); });

@@ -2,6 +2,7 @@ package org.minimalos.launcher;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.PendingIntent;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
@@ -33,6 +34,8 @@ import org.minimalos.device.PackageState;
 public final class MainActivity extends Activity {
     private final List<AppTile> tiles = new ArrayList<>();
     private TextView systemStatus;
+    private LinearLayout notificationList;
+    private Button notificationAccess;
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -42,7 +45,14 @@ public final class MainActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
+        CommunicationNotifications.observe(() -> runOnUiThread(this::refreshNotifications));
         refreshStatus();
+        refreshNotifications();
+    }
+
+    @Override protected void onPause() {
+        CommunicationNotifications.observe(null);
+        super.onPause();
     }
 
     @Override public void onBackPressed() {
@@ -93,6 +103,15 @@ public final class MainActivity extends Activity {
             grid.addView(tile, params);
         }
         root.addView(grid, Ui.matchWrap());
+
+        root.addView(Ui.text(this, "Notifications de communication", 17, Ui.color(this, R.color.ink)), Ui.matchWrap());
+        notificationAccess = Ui.button(this, "Activer les notifications dans Android");
+        notificationAccess.setOnClickListener(view -> openSettings(android.os.Build.VERSION.SDK_INT >= 22
+                ? Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS : Settings.ACTION_SETTINGS));
+        root.addView(notificationAccess, Ui.matchWrap());
+        notificationList = new LinearLayout(this);
+        notificationList.setOrientation(LinearLayout.VERTICAL);
+        root.addView(notificationList, Ui.matchWrap());
 
         LinearLayout mediaRow = new LinearLayout(this);
         mediaRow.setOrientation(LinearLayout.HORIZONTAL);
@@ -199,6 +218,52 @@ public final class MainActivity extends Activity {
         for (AppTile tile : tiles) tile.setPackageState(byName.get(AppCatalog.resolvePackageName(this, tile.entry)));
     }
 
+    private void refreshNotifications() {
+        if (notificationList == null) return;
+        boolean access = CommunicationNotifications.hasAccess(this);
+        notificationAccess.setVisibility(access ? View.GONE : View.VISIBLE);
+        notificationList.removeAllViews();
+        if (!access) {
+            notificationList.addView(Ui.text(this, "Accordez une fois l’accès aux notifications à Minimal OS pour afficher les messages ici et sur les raccourcis.", 13,
+                    Ui.color(this, R.color.muted)), Ui.matchWrap());
+        }
+        List<CommunicationNotifications.Item> items = access
+                ? CommunicationNotifications.snapshot() : new ArrayList<>();
+        Map<String, Integer> counts = new HashMap<>();
+        for (CommunicationNotifications.Item item : items) {
+            Integer previous = counts.get(item.packageName);
+            counts.put(item.packageName, previous == null ? 1 : previous + 1);
+        }
+        for (AppTile tile : tiles) {
+            Integer count = counts.get(AppCatalog.resolvePackageName(this, tile.entry));
+            tile.setBadge(count == null ? 0 : count);
+        }
+        if (access && items.isEmpty())
+            notificationList.addView(Ui.text(this, "Aucune notification de ces applications pour le moment.", 13,
+                    Ui.color(this, R.color.muted)), Ui.matchWrap());
+        for (int i = 0; i < Math.min(8, items.size()); i++) {
+            CommunicationNotifications.Item item = items.get(i);
+            String label = item.packageName;
+            for (AppEntry entry : AppCatalog.entries())
+                if (AppCatalog.resolvePackageName(this, entry).equals(item.packageName)) { label = entry.label(); break; }
+            String detail = item.title.isEmpty() ? label : label + " · " + item.title;
+            if (!item.body.isEmpty()) detail += "\n" + item.body;
+            Button row = Ui.button(this, detail);
+            row.setOnClickListener(view -> {
+                try {
+                    if (item.open != null) item.open.send();
+                    else openNotificationApp(item.packageName);
+                } catch (PendingIntent.CanceledException expired) { openNotificationApp(item.packageName); }
+            });
+            notificationList.addView(row, Ui.matchWrap());
+        }
+    }
+
+    private void openNotificationApp(String packageName) {
+        Intent intent = getPackageManager().getLaunchIntentForPackage(packageName);
+        if (intent != null) startActivity(intent);
+    }
+
     private int batteryPercent() {
         Intent battery = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
         if (battery == null) return -1;
@@ -236,6 +301,7 @@ public final class MainActivity extends Activity {
         private final AppEntry entry;
         private final TextView status;
         private PackageState packageState;
+        private int badge;
 
         AppTile(Context context, AppEntry entry) {
             super(context);
@@ -266,9 +332,20 @@ public final class MainActivity extends Activity {
 
         void setPackageState(PackageState state) {
             packageState = state;
+            updateStatus();
+        }
+
+        void setBadge(int count) {
+            badge = count;
+            updateStatus();
+        }
+
+        private void updateStatus() {
+            PackageState state = packageState;
             int statusText = state == null || !state.installed() ? R.string.not_installed
                     : state.enabled() ? R.string.available : R.string.disabled;
-            status.setText(statusText);
+            status.setText(badge > 0 ? getResources().getQuantityString(R.plurals.tile_status_notifications,
+                    badge, getString(statusText), badge) : getString(statusText));
             setContentDescription(entry.label() + ", " + status.getText());
         }
     }

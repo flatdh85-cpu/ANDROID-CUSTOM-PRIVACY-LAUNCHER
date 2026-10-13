@@ -2,13 +2,15 @@
 
 ## Launcher
 
-| Plateforme | État V5 | Limites à vérifier sur appareil |
+| Plateforme | État V6 | Limites à vérifier sur appareil |
 | --- | --- | --- |
 | Android 5–7 | Compilable, API minimale 21 | Sélecteur HOME, stockage partagé, permissions et réception au premier plan |
 | Android 8–10 | Compilable | Restrictions EMUI/MIUI, suppression MediaStore Android 10, service après redémarrage |
 | Android 11–15 | Compilable | Autorisation complète des médias, confirmations de suppression et politiques de batterie |
 
 La compilation prouve la compatibilité des API, pas le fonctionnement sur chaque firmware. Wiko Lenny 3, Huawei P30 Lite MAR-LX1B, Samsung One UI et Xiaomi MIUI/HyperOS exigent des tests physiques. La cible de moins de 15 Mo PSS au repos n'est pas encore mesurée. Les intents caméra/vidéo/galerie dépendent d'une application système compatible.
+
+Les pastilles et la liste de notifications nécessitent l'accès spécial « notifications » d'Android. Sur certains Android récents, un APK installé hors magasin peut devoir être autorisé dans « paramètres restreints » avant que ce réglage soit disponible. Les notifications sont facultatives et n'affectent pas la copie des médias.
 
 L'inventaire Phase 2 déclare `QUERY_ALL_PACKAGES`. Il convient à une distribution directe de cet outil d'audit, mais Google Play restreint cette permission. Une publication Play devra confirmer l'éligibilité ou utiliser un inventaire fourni par ADB/Shizuku dans une phase ultérieure.
 

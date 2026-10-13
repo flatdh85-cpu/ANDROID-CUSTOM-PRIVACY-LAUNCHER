@@ -187,25 +187,60 @@ public final class SyncActivity extends Activity {
                 status.setText(addresses.isEmpty() ? "Associez d’abord les deux téléphones dans les réglages Bluetooth Android." : "Choisissez le téléphone pair.");
             } catch (Exception failure) { status.setText("Bluetooth indisponible : " + failure.getMessage()); }
         } else {
-            status.setText("Recherche Wi-Fi Direct en cours ; activez le Wi-Fi et la localisation si Android le demande…");
+            status.setText("Recherche Wi-Fi Direct en cours…");
             try {
                 WifiDirectLink link = WifiDirectLink.create(this);
-                link.discover(new WifiP2pManager.ActionListener() {
-                    @Override public void onSuccess() {
-                        new android.os.Handler(getMainLooper()).postDelayed(() -> link.peers(list -> {
-                            List<String> names = new ArrayList<>(), addresses = new ArrayList<>();
-                            for (WifiP2pDevice device : list.getDeviceList()) {
-                                names.add(device.deviceName + " · " + device.deviceAddress);
-                                addresses.add(device.deviceAddress);
-                            }
-                            showPeers(names, addresses);
-                            status.setText(addresses.isEmpty() ? "Aucun pair Wi-Fi Direct trouvé. Réessayez sur les deux téléphones." : "Choisissez le pair ; la connexion sera établie lors de la copie.");
-                        }), 5000);
-                    }
-                    @Override public void onFailure(int reason) { status.setText("Découverte Wi-Fi Direct refusée (" + reason + "). Vérifiez Wi-Fi et localisation."); }
+                link.info(info -> {
+                    if (info != null && info.groupFormed
+                            && PeerSettings.WIFI_DIRECT.equals(PeerSettings.transport(this))
+                            && !PeerSettings.peer(this).isEmpty()) {
+                        showSavedPeer();
+                        status.setText("Groupe Wi-Fi Direct déjà actif. Essayez la copie avec le pair enregistré.");
+                    } else startWifiDiscovery(link, false);
                 });
             } catch (Exception failure) { status.setText("Wi-Fi Direct indisponible : " + failure.getMessage()); }
         }
+    }
+    private void startWifiDiscovery(WifiDirectLink link, boolean retried) {
+        try { link.discover(new WifiP2pManager.ActionListener() {
+            @Override public void onSuccess() { pollWifiPeers(link, 0, -1, retried); }
+            @Override public void onFailure(int reason) {
+                status.setText("Android a refusé la nouvelle recherche Wi-Fi Direct (code " + reason
+                        + "). Lecture des pairs déjà connus…");
+                pollWifiPeers(link, 0, reason, retried);
+            }
+        }); }
+        catch (RuntimeException failure) { status.setText("Recherche Wi-Fi Direct indisponible : " + failure.getMessage()); }
+    }
+    private void pollWifiPeers(WifiDirectLink link, int attempt, int reason, boolean retried) {
+        try { link.peers(list -> {
+            List<String> names = new ArrayList<>(), addresses = new ArrayList<>();
+            for (WifiP2pDevice device : list.getDeviceList()) {
+                names.add(device.deviceName + " · " + device.deviceAddress);
+                addresses.add(device.deviceAddress);
+            }
+            if (!addresses.isEmpty()) {
+                showPeers(names, addresses);
+                status.setText("Choisissez le pair Wi-Fi Direct ; la connexion sera établie lors de la copie.");
+            } else if (attempt < 3) {
+                new android.os.Handler(getMainLooper()).postDelayed(
+                        () -> pollWifiPeers(link, attempt + 1, reason, retried), 3000);
+            } else if (!retried) {
+                status.setText("Aucun pair détecté ; nouvelle tentative Wi-Fi Direct…");
+                startWifiDiscovery(link, true);
+            } else {
+                link.info(info -> {
+                    if (info != null && info.groupFormed && !PeerSettings.peer(this).isEmpty()) {
+                        showSavedPeer();
+                        status.setText("Groupe Wi-Fi Direct déjà actif. Essayez la copie avec le pair enregistré.");
+                    } else status.setText("Aucun pair Wi-Fi Direct visible. "
+                            + (reason < 0 ? "La recherche n’a signalé aucune erreur précise. "
+                                    : "Code Android " + reason + " : erreur de la pile Wi-Fi P2P. ")
+                            + "Ouvrez les réglages Wi-Fi Direct des deux téléphones puis relancez la recherche.");
+                });
+            }
+        }); }
+        catch (RuntimeException failure) { status.setText("Lecture des pairs Wi-Fi Direct impossible : " + failure.getMessage()); }
     }
     private boolean saveSettings() {
         try {

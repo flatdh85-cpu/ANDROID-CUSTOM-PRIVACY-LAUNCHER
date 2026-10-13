@@ -10,7 +10,7 @@ import org.minimalos.replication.LanSync;
 import org.minimalos.replication.SyncResult;
 
 final class SyncWorker {
-    static SyncResult sync(Context context) throws Exception {
+    static synchronized SyncResult sync(Context context) throws Exception {
         try {
             String peer = PeerSettings.peer(context);
             if (peer.isEmpty()) throw new IllegalStateException("Choisissez un appareil pair");
@@ -41,15 +41,24 @@ final class SyncWorker {
             throw useful;
         }
     }
-    static void probe(Context context) throws Exception {
+    static synchronized void probe(Context context) throws Exception {
         String peer = PeerSettings.peer(context);
         if (peer.isEmpty()) throw new IllegalStateException("Choisissez un appareil pair");
         byte[] key = LanSync.parseKey(PeerSettings.code(context));
         if (PeerSettings.BLUETOOTH.equals(PeerSettings.transport(context))) {
-            try (BluetoothSocket socket = BluetoothLink.connect(peer)) {
-                LanSync.probeClient(socket.getInputStream(), socket.getOutputStream(), key);
-                return;
+            IOException last = null;
+            for (int attempt = 0; attempt < 3; attempt++) {
+                try (BluetoothSocket socket = BluetoothLink.connect(peer)) {
+                    LanSync.probeClient(socket.getInputStream(), socket.getOutputStream(), key);
+                    return;
+                } catch (IOException failure) {
+                    if (failure.getMessage() != null && (failure.getMessage().contains("Code partagé")
+                            || failure.getMessage().contains("Versions Minimal OS"))) throw failure;
+                    last = failure;
+                    if (attempt < 2) Thread.sleep(1000);
+                }
             }
+            throw new IOException("Récepteur Bluetooth non authentifié après trois tentatives : vérifiez la V6 et la réception sur l'autre téléphone", last);
         }
         InetAddress owner = WifiDirectLink.awaitOwner(context, peer);
         try (Socket socket = openWifi(owner)) {

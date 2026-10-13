@@ -23,6 +23,7 @@ public final class ReceiverService extends Service {
     private volatile boolean running;
     private BluetoothServerSocket bluetoothServer;
     private ServerSocket wifiServer;
+    private volatile boolean wifiStarting;
     private BroadcastReceiver p2pReceiver;
     private WifiDirectLink p2p;
 
@@ -90,10 +91,20 @@ public final class ReceiverService extends Service {
         };
         registerReceiver(p2pReceiver, new IntentFilter(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION));
         refreshWifiGroup();
+        discoverWifi(0);
+    }
+    private void discoverWifi(int attempt) {
         try { p2p.discover(new WifiP2pManager.ActionListener() {
             @Override public void onSuccess() { }
             @Override public void onFailure(int reason) {
                 android.util.Log.w("MinimalOS", "Découverte Wi-Fi Direct refusée : " + reason);
+                if (running && attempt < 2) new android.os.Handler(getMainLooper()).postDelayed(() -> {
+                    try { p2p.info(info -> {
+                        if (running && (info == null || !info.groupFormed)) discoverWifi(attempt + 1);
+                    }); } catch (RuntimeException blocked) {
+                        android.util.Log.w("MinimalOS", "État Wi-Fi Direct indisponible", blocked);
+                    }
+                }, 5000);
             }
         }); } catch (RuntimeException failure) {
             android.util.Log.w("MinimalOS", "Découverte Wi-Fi Direct indisponible", failure);
@@ -109,12 +120,14 @@ public final class ReceiverService extends Service {
             wifiServer = null;
             return;
         }
-        if (wifiServer != null && !wifiServer.isClosed()) return;
+        if (wifiStarting || (wifiServer != null && !wifiServer.isClosed())) return;
+        wifiStarting = true;
         new Thread(() -> listenWifi(info), "minimal-os-wifi-direct-receiver").start();
     }
     private void listenWifi(WifiP2pInfo info) {
         try (ServerSocket listener = new ServerSocket(LanSync.PORT, 2, info.groupOwnerAddress)) {
             wifiServer = listener;
+            wifiStarting = false;
             receiverReady();
             while (running) {
                 try (Socket socket = listener.accept()) {
@@ -132,7 +145,7 @@ public final class ReceiverService extends Service {
                 receiverError("Récepteur Wi-Fi Direct indisponible : " + unavailable.getMessage());
                 android.util.Log.e("MinimalOS", "Récepteur Wi-Fi Direct indisponible", unavailable);
             }
-        }
+        } finally { wifiStarting = false; }
     }
     @Override public int onStartCommand(Intent intent, int flags, int startId) { return START_STICKY; }
     @Override public void onDestroy() {

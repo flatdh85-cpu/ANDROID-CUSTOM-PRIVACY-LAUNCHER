@@ -94,18 +94,20 @@ public class LanSyncTest {
     @Test public void panicProbeRequiresTheSameCode() throws Exception {
         byte[] receiverKey = LanSync.parseKey(LanSync.newKey());
         try (ServerSocket listener = new ServerSocket(0)) {
-            FutureTask<Void> server = new FutureTask<>(() -> {
+            FutureTask<SyncResult> server = new FutureTask<>(() -> {
                 try (Socket socket = listener.accept()) {
-                    try { LanSync.server(socket, receiverKey, new Memory()); }
-                    catch (IOException closedAfterProbe) { /* Probe deliberately stops before a manifest. */ }
+                    return LanSync.server(socket, receiverKey, new MediaRepository() {
+                        @Override public List<MediaRecord> list() { throw new AssertionError("La sonde ne doit pas lire la galerie"); }
+                        @Override public InputStream open(MediaRecord record) { throw new AssertionError("La sonde ne doit pas ouvrir de média"); }
+                        @Override public PendingWrite begin(MediaRecord record) { throw new AssertionError("La sonde ne doit pas écrire de média"); }
+                    });
                 }
-                return null;
             });
             new Thread(server).start();
             try (Socket socket = new Socket("127.0.0.1", listener.getLocalPort())) {
                 LanSync.probeClient(socket.getInputStream(), socket.getOutputStream(), receiverKey);
             }
-            server.get();
+            assertEquals(0, server.get().sent());
         }
         try (ServerSocket listener = new ServerSocket(0)) {
             FutureTask<Void> server = new FutureTask<>(() -> {

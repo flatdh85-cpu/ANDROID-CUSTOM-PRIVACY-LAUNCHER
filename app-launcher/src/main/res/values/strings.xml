@@ -5,6 +5,10 @@
     <string name="not_installed">Non installée</string>
     <string name="disabled">Désactivée</string>
     <string name="available">Disponible</string>
+    <plurals name="tile_status_notifications">
+        <item quantity="one">%1$s · %2$d notification</item>
+        <item quantity="other">%1$s · %2$d notifications</item>
+    </plurals>
     <string name="cannot_open">Impossible d’ouvrir %1$s.</string>
     <string name="missing_title">%1$s n’est pas installée</string>
     <string name="missing_message">Minimal OS ne télécharge pas de binaire arbitraire. Vérifiez une source officielle et la compatibilité de votre version Android.</string>
