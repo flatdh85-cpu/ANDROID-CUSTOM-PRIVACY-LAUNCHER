@@ -18,10 +18,8 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
 import android.widget.TextClock;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -34,10 +32,10 @@ import org.minimalos.device.PackageState;
 public final class MainActivity extends Activity {
     private final List<AppTile> tiles = new ArrayList<>();
     private TextView systemStatus;
-    private LinearLayout notificationList;
-    private Button notificationAccess;
+    private Button notificationPreview;
     private final android.os.Handler panicHold = new android.os.Handler(android.os.Looper.getMainLooper());
     private long panicDown;
+    private boolean homeVisible;
     private final Runnable openPanic = () -> startActivity(new Intent(this, PanicActivity.class).putExtra("execute", true));
 
     @Override protected void onCreate(Bundle state) {
@@ -53,12 +51,14 @@ public final class MainActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
+        homeVisible=true;
         CommunicationNotifications.observe(() -> runOnUiThread(this::refreshNotifications));
         refreshStatus();
         refreshNotifications();
     }
 
     @Override protected void onPause() {
+        homeVisible=false;
         panicHold.removeCallbacks(openPanic);
         CommunicationNotifications.observe(null);
         super.onPause();
@@ -70,89 +70,44 @@ public final class MainActivity extends Activity {
 
     @android.annotation.SuppressLint("ClickableViewAccessibility") // Touch listener only cancels the timer; Button retains its normal click/long-click accessibility actions.
     private View buildContent() {
-        ScrollView scroll = new ScrollView(this);
-        scroll.setFillViewport(true);
-        scroll.setBackgroundColor(Ui.color(this, R.color.background));
-
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(Ui.dp(this, 16), Ui.dp(this, 16), Ui.dp(this, 16), Ui.dp(this, 24));
-        scroll.addView(root, new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT));
+        root.setFitsSystemWindows(true);
+        root.setBackgroundColor(Ui.color(this,R.color.background));
+        int padding=Ui.dp(this,6); root.setPadding(padding,padding,padding,padding);
 
-        TextClock clock = new TextClock(this);
-        clock.setFormat24Hour("HH:mm");
-        clock.setFormat12Hour("h:mm");
-        clock.setTextSize(42);
-        clock.setTextColor(Ui.color(this, R.color.ink));
-        clock.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        clock.setGravity(Gravity.CENTER_HORIZONTAL);
-        root.addView(clock, Ui.matchWrap());
+        LinearLayout header = new LinearLayout(this); header.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout clockColumn = new LinearLayout(this); clockColumn.setOrientation(LinearLayout.VERTICAL);
+        TextClock clock = new TextClock(this); clock.setFormat24Hour("HH:mm"); clock.setFormat12Hour("h:mm");
+        clock.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX,Ui.dp(this,24)); clock.setTextColor(Ui.color(this,R.color.ink)); clock.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+        clock.setSingleLine(true); clockColumn.addView(clock,Ui.matchWrap());
+        systemStatus=Ui.text(this,"",10,Ui.color(this,R.color.muted)); systemStatus.setSingleLine(true); systemStatus.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX,Ui.dp(this,10));
+        systemStatus.setEllipsize(android.text.TextUtils.TruncateAt.END); clockColumn.addView(systemStatus,Ui.matchWrap());
+        header.addView(clockColumn,new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.MATCH_PARENT,1));
+        notificationPreview=Ui.button(this,"Notifications"); notificationPreview.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX,Math.min(12*getResources().getDisplayMetrics().scaledDensity,Ui.dp(this,14)));
+        notificationPreview.setMaxLines(2); notificationPreview.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        notificationPreview.setPadding(Ui.dp(this,8),0,Ui.dp(this,8),0);
+        notificationPreview.setOnClickListener(view -> showNotifications());
+        header.addView(notificationPreview,new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.MATCH_PARENT,2));
+        root.addView(header,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,Ui.dp(this,54)));
 
-        TextView subtitle = Ui.text(this, getString(R.string.home_subtitle), 16, Ui.color(this, R.color.muted));
-        subtitle.setGravity(Gravity.CENTER_HORIZONTAL);
-        root.addView(subtitle, Ui.matchWrap());
-
-        systemStatus = Ui.text(this, "", 15, Ui.color(this, R.color.ink));
-        systemStatus.setGravity(Gravity.CENTER_HORIZONTAL);
-        LinearLayout.LayoutParams statusParams = Ui.matchWrap();
-        statusParams.setMargins(0, Ui.dp(this, 8), 0, Ui.dp(this, 12));
-        root.addView(systemStatus, statusParams);
-
-        GridLayout grid = new GridLayout(this);
-        grid.setColumnCount(3);
-        grid.setUseDefaultMargins(false);
-        for (AppEntry entry : AppCatalog.entries()) {
-            AppTile tile = new AppTile(this, entry);
-            tiles.add(tile);
-            GridLayout.LayoutParams params = new GridLayout.LayoutParams();
-            params.width = 0;
-            params.height = Ui.dp(this, 128);
-            params.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
-            params.setMargins(Ui.dp(this, 4), Ui.dp(this, 4), Ui.dp(this, 4), Ui.dp(this, 4));
-            grid.addView(tile, params);
-        }
-        root.addView(grid, Ui.matchWrap());
-
-        root.addView(Ui.text(this, "Notifications de communication", 17, Ui.color(this, R.color.ink)), Ui.matchWrap());
-        notificationAccess = Ui.button(this, "Activer les notifications dans Android");
-        notificationAccess.setOnClickListener(view -> openSettings(android.os.Build.VERSION.SDK_INT >= 22
-                ? Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS : Settings.ACTION_SETTINGS));
-        root.addView(notificationAccess, Ui.matchWrap());
-        notificationList = new LinearLayout(this);
-        notificationList.setOrientation(LinearLayout.VERTICAL);
-        root.addView(notificationList, Ui.matchWrap());
-
-        LinearLayout mediaRow = new LinearLayout(this);
-        addAction(mediaRow, "Photo", R.drawable.ic_photo, () -> openMedia(new Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA), R.string.photo));
-        addAction(mediaRow, "Vidéo", R.drawable.ic_video, () -> openMedia(new Intent(MediaStore.INTENT_ACTION_VIDEO_CAMERA), R.string.video));
-        addAction(mediaRow, "Galerie", R.drawable.ic_gallery, () -> openMedia(new Intent(Intent.ACTION_VIEW, MediaStore.Images.Media.EXTERNAL_CONTENT_URI), R.string.gallery));
-        root.addView(mediaRow, Ui.matchWrap());
-        LinearLayout settingsRow = new LinearLayout(this);
-        addAction(settingsRow, getString(R.string.wifi), R.drawable.ic_wifi, () -> openSettings(Settings.ACTION_WIFI_SETTINGS));
-        addAction(settingsRow, getString(R.string.bluetooth), R.drawable.ic_bluetooth, () -> openSettings(Settings.ACTION_BLUETOOTH_SETTINGS));
-        addAction(settingsRow, getString(R.string.location), R.drawable.ic_location, () -> openSettings(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
-        root.addView(settingsRow, Ui.matchWrap());
-        LinearLayout internetRow = new LinearLayout(this);
-        addAction(internetRow, getString(R.string.internet), R.drawable.ic_internet, () -> {
-            try { startActivity(Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_BROWSER)); }
-            catch (ActivityNotFoundException unavailable) { Toast.makeText(this, "Aucun navigateur installé", Toast.LENGTH_SHORT).show(); }
+        HomeGrid grid=new HomeGrid(this);
+        for (AppEntry entry:AppCatalog.entries()) { AppTile tile=new AppTile(this,entry); tiles.add(tile); grid.addView(tile); }
+        addAction(grid,"Photo",R.drawable.ic_photo,() -> openMedia(new Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA),R.string.photo));
+        addAction(grid,"Vidéo",R.drawable.ic_video,() -> openMedia(new Intent(MediaStore.INTENT_ACTION_VIDEO_CAMERA),R.string.video));
+        addAction(grid,"Galerie",R.drawable.ic_gallery,() -> openMedia(new Intent(Intent.ACTION_VIEW,MediaStore.Images.Media.EXTERNAL_CONTENT_URI),R.string.gallery));
+        addAction(grid,getString(R.string.wifi),R.drawable.ic_wifi,() -> openSettings(Settings.ACTION_WIFI_SETTINGS));
+        addAction(grid,getString(R.string.bluetooth),R.drawable.ic_bluetooth,() -> openSettings(Settings.ACTION_BLUETOOTH_SETTINGS));
+        addAction(grid,getString(R.string.location),R.drawable.ic_location,() -> openSettings(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+        addAction(grid,getString(R.string.internet),R.drawable.ic_internet,() -> {
+            try { startActivity(Intent.makeMainSelectorActivity(Intent.ACTION_MAIN,Intent.CATEGORY_APP_BROWSER)); }
+            catch (ActivityNotFoundException unavailable) { Toast.makeText(this,"Aucun navigateur installé",Toast.LENGTH_SHORT).show(); }
         });
-        root.addView(internetRow, Ui.matchWrap());
-
-        Button installer = Ui.button(this, "Applications et autorisations");
-        installer.setOnClickListener(view -> startActivity(new Intent(this, AppInstallerActivity.class)));
-        root.addView(installer, Ui.matchWrap());
-
-        Button diagnostics = Ui.button(this, getString(R.string.diagnostics));
-        diagnostics.setOnClickListener(view -> startActivity(new Intent(this, DiagnosticsActivity.class)));
-        LinearLayout.LayoutParams diagParams = Ui.matchWrap();
-        diagParams.setMargins(0, Ui.dp(this, 8), 0, 0);
-        root.addView(diagnostics, diagParams);
-
-        Button chooseHome = Ui.button(this, getString(R.string.choose_home));
-        chooseHome.setOnClickListener(view -> openSettings(Settings.ACTION_HOME_SETTINGS));
-        root.addView(chooseHome, Ui.matchWrap());
+        addAction(grid,"Thème sombre",R.drawable.ic_night,this::openDarkTheme);
+        addAction(grid,"Applications",R.drawable.ic_apps,() -> startActivity(new Intent(this,AppInstallerActivity.class)));
+        addAction(grid,getString(R.string.diagnostics),R.drawable.ic_diagnostics,() -> startActivity(new Intent(this,DiagnosticsActivity.class)));
+        addAction(grid,getString(R.string.choose_home),R.drawable.ic_home,() -> openSettings(Settings.ACTION_HOME_SETTINGS));
+        root.addView(grid,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,0,1));
 
         Button panic = Ui.button(this, "Panic — maintenir 3 secondes");
         android.graphics.drawable.GradientDrawable panicBackground = new android.graphics.drawable.GradientDrawable();
@@ -177,23 +132,40 @@ public final class MainActivity extends Activity {
             panicHold.postDelayed(openPanic, Math.max(0, 3000 - elapsed));
             return true;
         });
-        root.addView(panic, Ui.matchWrap());
-
-        return scroll;
+        panic.setTextSize(14); panic.setMaxLines(1); panic.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        root.addView(panic,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,Ui.dp(this,48)));
+        return root;
     }
 
-    private void addAction(LinearLayout row, String title, int drawable, Runnable action) {
-        LinearLayout tile = new LinearLayout(this); tile.setOrientation(LinearLayout.VERTICAL);
-        tile.setGravity(Gravity.CENTER); tile.setBackgroundResource(R.drawable.tile_background);
-        tile.setFocusable(true); tile.setClickable(true); tile.setContentDescription(title);
-        ImageView icon = new ImageView(this); icon.setImageResource(drawable);
-        icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        tile.addView(icon, new LinearLayout.LayoutParams(Ui.dp(this, 26), Ui.dp(this, 26)));
-        TextView label = Ui.text(this, title, 13, Ui.color(this, R.color.ink)); label.setGravity(Gravity.CENTER);
-        LinearLayout.LayoutParams labelParams = Ui.matchWrap(); labelParams.topMargin = Ui.dp(this, 8); tile.addView(label, labelParams);
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, Ui.dp(this, 86), 1);
-        int gap = Ui.dp(this, 4); params.setMargins(gap, gap, gap, gap); row.addView(tile, params);
-        tile.setOnClickListener(view -> action.run());
+    private void addAction(HomeGrid grid,String title,int drawable,Runnable action) {
+        HomeTile tile=new HomeTile(this,title,drawable,false);
+        tile.setOnClickListener(view -> action.run()); grid.addView(tile);
+    }
+
+    @Override public void onWindowFocusChanged(boolean focused) {
+        super.onWindowFocusChanged(focused);
+        if (focused) getWindow().getDecorView().post(this::offerSystemDarkTheme);
+    }
+    private void offerSystemDarkTheme() {
+        if (!homeVisible || !hasWindowFocus() || isFinishing()) return;
+        Intent home=new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME);
+        android.content.pm.ResolveInfo resolved=getPackageManager().resolveActivity(home,android.content.pm.PackageManager.MATCH_DEFAULT_ONLY);
+        if (resolved==null || resolved.activityInfo==null || !getPackageName().equals(resolved.activityInfo.packageName)) return;
+        android.content.SharedPreferences prefs=getSharedPreferences("appearance",MODE_PRIVATE);
+        if (prefs.getBoolean("dark-theme-offered",false)) return;
+        prefs.edit().putBoolean("dark-theme-offered",true).apply();
+        int night=getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK;
+        if (night==android.content.res.Configuration.UI_MODE_NIGHT_YES) return;
+        new AlertDialog.Builder(this).setTitle("Thème sombre du téléphone")
+                .setMessage(android.os.Build.VERSION.SDK_INT>=29
+                        ? "Minimal OS est votre accueil par défaut. Activez le thème sombre dans Android pour que le téléphone et les applications compatibles l’utilisent. Certaines applications ont leur propre réglage."
+                        : "Minimal OS reste sombre. Sur cette version d’Android, un thème sombre général dépend du constructeur ; les applications peuvent aussi avoir leur propre réglage.")
+                .setPositiveButton("Ouvrir le réglage",(dialog,which) -> openDarkTheme())
+                .setNegativeButton("Plus tard",null).show();
+    }
+    private void openDarkTheme() {
+        try { startActivity(new Intent("android.settings.DARK_THEME_SETTINGS")); }
+        catch (RuntimeException unavailable) { openSettings(Settings.ACTION_DISPLAY_SETTINGS); }
     }
 
     private void openMedia(Intent intent, int label) {
@@ -228,45 +200,42 @@ public final class MainActivity extends Activity {
         for (AppTile tile : tiles) tile.setPackageState(byName.get(AppCatalog.resolvePackageName(this, tile.entry)));
     }
 
+    @android.annotation.SuppressLint("SetTextI18n")
     private void refreshNotifications() {
-        if (notificationList == null) return;
-        boolean access = CommunicationNotifications.hasAccess(this);
-        notificationAccess.setVisibility(access ? View.GONE : View.VISIBLE);
-        notificationList.removeAllViews();
-        if (!access) {
-            notificationList.addView(Ui.text(this, "Accordez une fois l’accès aux notifications à Minimal OS pour afficher les messages ici et sur les raccourcis.", 13,
-                    Ui.color(this, R.color.muted)), Ui.matchWrap());
+        if (notificationPreview==null) return;
+        boolean access=CommunicationNotifications.hasAccess(this);
+        List<CommunicationNotifications.Item> items=access?CommunicationNotifications.snapshot():new ArrayList<>();
+        Map<String,Integer> counts=new HashMap<>();
+        for (CommunicationNotifications.Item item:items) {
+            Integer count=counts.get(item.packageName); counts.put(item.packageName,count==null?1:count+1);
         }
-        List<CommunicationNotifications.Item> items = access
-                ? CommunicationNotifications.snapshot() : new ArrayList<>();
-        Map<String, Integer> counts = new HashMap<>();
-        for (CommunicationNotifications.Item item : items) {
-            Integer previous = counts.get(item.packageName);
-            counts.put(item.packageName, previous == null ? 1 : previous + 1);
+        for (AppTile tile:tiles) {
+            Integer count=counts.get(AppCatalog.resolvePackageName(this,tile.entry)); tile.setBadge(count==null?0:count);
         }
-        for (AppTile tile : tiles) {
-            Integer count = counts.get(AppCatalog.resolvePackageName(this, tile.entry));
-            tile.setBadge(count == null ? 0 : count);
+        if (!access) notificationPreview.setText("Activer les notifications");
+        else if (items.isEmpty()) notificationPreview.setText("Aucune notification");
+        else {
+            CommunicationNotifications.Item first=items.get(0);
+            notificationPreview.setText(items.size()+" notification(s)\n"+(first.title.isEmpty()?first.body:first.title));
         }
-        if (access && items.isEmpty())
-            notificationList.addView(Ui.text(this, "Aucune notification de ces applications pour le moment.", 13,
-                    Ui.color(this, R.color.muted)), Ui.matchWrap());
-        for (int i = 0; i < Math.min(8, items.size()); i++) {
-            CommunicationNotifications.Item item = items.get(i);
-            String label = item.packageName;
-            for (AppEntry entry : AppCatalog.entries())
-                if (AppCatalog.resolvePackageName(this, entry).equals(item.packageName)) { label = entry.label(); break; }
-            String detail = item.title.isEmpty() ? label : label + " · " + item.title;
-            if (!item.body.isEmpty()) detail += "\n" + item.body;
-            Button row = Ui.button(this, detail);
-            row.setOnClickListener(view -> {
-                try {
-                    if (item.open != null) item.open.send();
-                    else openNotificationApp(item.packageName);
-                } catch (PendingIntent.CanceledException expired) { openNotificationApp(item.packageName); }
-            });
-            notificationList.addView(row, Ui.matchWrap());
+    }
+    private void showNotifications() {
+        if (!CommunicationNotifications.hasAccess(this)) {
+            openSettings(android.os.Build.VERSION.SDK_INT>=22?Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS:Settings.ACTION_SETTINGS); return;
         }
+        List<CommunicationNotifications.Item> items=CommunicationNotifications.snapshot();
+        if (items.isEmpty()) { Toast.makeText(this,"Aucune notification de communication",Toast.LENGTH_SHORT).show(); return; }
+        String[] labels=new String[items.size()];
+        for(int i=0;i<items.size();i++) {
+            CommunicationNotifications.Item item=items.get(i); String name=item.packageName;
+            for(AppEntry entry:AppCatalog.entries()) if(AppCatalog.resolvePackageName(this,entry).equals(item.packageName)) { name=entry.label(); break; }
+            labels[i]=name+" · "+item.title+(item.body.isEmpty()?"":"\n"+item.body);
+        }
+        new AlertDialog.Builder(this).setTitle("Notifications de communication").setItems(labels,(dialog,which) -> {
+            CommunicationNotifications.Item item=items.get(which);
+            try { if(item.open!=null) item.open.send(); else openNotificationApp(item.packageName); }
+            catch(PendingIntent.CanceledException expired) { openNotificationApp(item.packageName); }
+        }).setNegativeButton("Fermer",null).show();
     }
 
     private void openNotificationApp(String packageName) {
@@ -313,37 +282,50 @@ public final class MainActivity extends Activity {
         startActivity(intent);
     }
 
-    private final class AppTile extends LinearLayout {
+    private class HomeTile extends LinearLayout {
+        final ImageView icon;
+        final TextView label,status;
+        final boolean withStatus;
+        HomeTile(Context context,String title,int drawable,boolean withStatus) {
+            super(context); this.withStatus=withStatus;
+            setOrientation(VERTICAL); setGravity(Gravity.CENTER);
+            int pad=Ui.dp(context,4); setPadding(pad,pad,pad,pad);
+            setBackgroundResource(R.drawable.tile_background); setFocusable(true); setClickable(true); setContentDescription(title);
+            icon=new ImageView(context); icon.setImageResource(drawable); icon.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
+            addView(icon,new LinearLayout.LayoutParams(Ui.dp(context,28),Ui.dp(context,28)));
+            label=Ui.text(context,title,14,Ui.color(context,R.color.ink)); label.setGravity(Gravity.CENTER); label.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+            label.setIncludeFontPadding(false); label.setSingleLine(true); label.setEllipsize(android.text.TextUtils.TruncateAt.END); addView(label,Ui.matchWrap());
+            status=Ui.text(context,"",11,Ui.color(context,R.color.muted)); status.setGravity(Gravity.CENTER);
+            status.setIncludeFontPadding(false); status.setSingleLine(true); status.setEllipsize(android.text.TextUtils.TruncateAt.END); status.setVisibility(withStatus?VISIBLE:GONE); addView(status,Ui.matchWrap());
+        }
+        @Override protected void onMeasure(int widthSpec,int heightSpec) {
+            int height=View.MeasureSpec.getSize(heightSpec);
+            boolean showIcon=height>=Ui.dp(getContext(),withStatus?68:52);
+            icon.setVisibility(showIcon?VISIBLE:GONE);
+            int iconSize=Ui.dp(getContext(),height>=Ui.dp(getContext(),90)?30:20);
+            icon.getLayoutParams().height=iconSize; icon.getLayoutParams().width=iconSize;
+            float width=Math.max(1,View.MeasureSpec.getSize(widthSpec)-getPaddingLeft()-getPaddingRight());
+            float textHeight=Math.max(1,height-getPaddingTop()-getPaddingBottom()-(showIcon?iconSize:0));
+            float maxFont=textHeight/(withStatus?2.5f:1.3f);
+            fitText(label,14,width,maxFont); fitText(status,11,width,maxFont);
+            super.onMeasure(widthSpec,heightSpec);
+        }
+        private void fitText(TextView view,float sp,float width,float maxFont) {
+            float preferred=Math.min(maxFont,sp*getResources().getDisplayMetrics().scaledDensity);
+            android.graphics.Paint measuring=new android.graphics.Paint(view.getPaint()); measuring.setTextSize(preferred);
+            float measured=measuring.measureText(view.getText().toString());
+            float floor=10*getResources().getDisplayMetrics().density;
+            view.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX,Math.min(preferred,Math.max(floor,preferred*width/Math.max(1,measured))));
+        }
+    }
+
+    private final class AppTile extends HomeTile {
         private final AppEntry entry;
-        private final TextView status;
         private PackageState packageState;
         private int badge;
-
-        AppTile(Context context, AppEntry entry) {
-            super(context);
-            this.entry = entry;
-            setOrientation(VERTICAL);
-            setGravity(Gravity.CENTER);
-            setPadding(Ui.dp(context, 8), Ui.dp(context, 8), Ui.dp(context, 8), Ui.dp(context, 8));
-            setBackgroundResource(R.drawable.tile_background);
-            setFocusable(true);
-            setClickable(true);
-            setContentDescription(entry.label());
-
-            ImageView icon = new ImageView(context);
-            icon.setImageResource(entry.iconRes());
-            icon.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
-            addView(icon, new LinearLayout.LayoutParams(Ui.dp(context, 32), Ui.dp(context, 32)));
-
-            TextView label = Ui.text(context, entry.label(), 14, Ui.color(context, R.color.ink));
-            label.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-            label.setGravity(Gravity.CENTER);
-            addView(label, Ui.matchWrap());
-
-            status = Ui.text(context, getString(R.string.not_installed), 12, Ui.color(context, R.color.muted));
-            status.setGravity(Gravity.CENTER);
-            addView(status, Ui.matchWrap());
-            setOnClickListener(view -> launch(entry, packageState));
+        AppTile(Context context,AppEntry entry) {
+            super(context,entry.label(),entry.iconRes(),true); this.entry=entry;
+            setOnClickListener(view -> launch(entry,packageState));
         }
 
         void setPackageState(PackageState state) {
@@ -356,6 +338,7 @@ public final class MainActivity extends Activity {
             updateStatus();
         }
 
+        @android.annotation.SuppressLint("SetTextI18n")
         private void updateStatus() {
             PackageState state = packageState;
             int statusText = state == null || !state.installed() ? R.string.not_installed
@@ -363,9 +346,8 @@ public final class MainActivity extends Activity {
             if ((state == null || !state.installed()) && android.os.Build.VERSION.SDK_INT < AppCatalog.currentMinimumSdk(entry)) {
                 status.setText(R.string.requires_android_eight); setContentDescription(entry.label() + ", " + status.getText()); return;
             }
-            status.setText(badge > 0 ? getResources().getQuantityString(R.plurals.tile_status_notifications,
-                    badge, getString(statusText), badge) : getString(statusText));
-            setContentDescription(entry.label() + ", " + status.getText());
+            status.setText(badge>0 ? badge+" notif." : getString(statusText));
+            setContentDescription(entry.label()+", "+getString(statusText)+(badge>0?", "+badge+" notifications":""));
         }
     }
 }

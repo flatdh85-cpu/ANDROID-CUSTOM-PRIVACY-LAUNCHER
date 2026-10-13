@@ -1,20 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Minimal OS</string>
-    <string name="home_subtitle">Communication essentielle · Copie locale</string>
     <string name="not_installed">Non installée</string>
     <string name="disabled">Désactivée</string>
     <string name="available">Disponible</string>
-    <plurals name="tile_status_notifications">
-        <item quantity="one">%1$s · %2$d notification</item>
-        <item quantity="other">%1$s · %2$d notifications</item>
-    </plurals>
     <string name="cannot_open">Impossible d’ouvrir %1$s.</string>
     <string name="missing_title">%1$s n’est pas installée</string>
     <string name="missing_message">Minimal OS ne télécharge pas de binaire arbitraire. Vérifiez une source officielle et la compatibilité de votre version Android.</string>
     <string name="open_app_settings">Réglages des applications</string>
     <string name="cancel">Fermer</string>
-    <string name="choose_home">Choisir le launcher HOME</string>
+    <string name="choose_home">Choisir HOME</string>
     <string name="diagnostics">Diagnostics</string>
     <string name="wifi">Wi-Fi</string>
     <string name="bluetooth">Bluetooth</string>
@@ -53,5 +48,5 @@
     <string name="understood">Compris</string>
     <string name="back">Retour</string>
     <string name="panic_accessibility_description">Valide les confirmations système de désinstallation et de suppression de galerie uniquement pendant un Panic lancé par vous. Peut supprimer définitivement vos photos, vidéos, fichiers téléchargés et les données de LocalSend, BitChat, SimpleX et Minimal OS. Aucun clic hors de cette procédure, aucune collecte ni transmission du contenu de l’écran. Désactivable dans les paramètres Android.</string>
-    <string name="requires_android_eight">Version actuelle : Android 8+</string>
+    <string name="requires_android_eight">Android 8+</string>
 </resources>

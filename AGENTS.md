@@ -249,3 +249,5 @@ Références : `docs/ARCHITECTURE.md`, `docs/PANIC.md`, `docs/COMPATIBILITY.md`,
 Proposer au premier lancement un assistant d’installation de LocalSend, BitChat et SimpleX, avec APK officielles épinglées et vérifiées (SDK/ABI/hash/certificat), installateur Android et confirmations utilisateur. Applications déjà présentes ignorées. Android 6 reste pris en charge par le launcher ; seules les versions tierces compatibles sont proposées.
 
 Au premier lancement, proposer les permissions de localisation, galerie et fichiers de Minimal OS ; afficher les refus et permettre une reprise. La position n’est pas lue/transmise. L’utilisateur souhaite conserver la configuration Panic séparée et inchangée. Ces autorisations ne valent pas pour les applications tierces.
+
+L’accueil doit rester fixe sans défilement : grille mesurée adaptative portrait/paysage, aperçu des notifications ouvrant leur détail. Proposer le réglage sombre global quand Minimal OS devient HOME par défaut et garder un raccourci ; ne pas prétendre pouvoir imposer le thème à Android ou aux applications tierces. Android 6 peut ne pas proposer de thème système général.

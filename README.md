@@ -10,7 +10,9 @@ Panic supprime les applications ciblées installées, la galerie publique access
 
 **Android 6** : le launcher conserve `minSdk 21` et les API récentes sont conditionnelles. LocalSend 1.17.0 déclare API 21 minimum. Les sources actuelles de **BitChat et SimpleX exigent API 26 / Android 8** : leur compatibilité Android 6 ne peut pas être garantie par le launcher et cette limite est affichée sur les raccourcis absents. [Compatibilité et sources](docs/COMPATIBILITY.md).
 
-Au premier lancement, les accès localisation, galerie et fichiers sont demandés ; la configuration Panic reste séparée. Un [assistant](docs/INSTALLATION.md) télécharge et vérifie les APK officielles compatibles, puis lance leurs installations avec les confirmations Android. Accessible aussi par **Applications et autorisations**.
+Au premier lancement, les accès localisation, galerie et fichiers sont demandés ; la configuration Panic reste séparée. Un [assistant](docs/INSTALLATION.md) télécharge et vérifie les APK officielles compatibles, puis lance leurs installations avec les confirmations Android. Accessible aussi par **Applications**.
+
+L’accueil tient dans une grille fixe adaptée à l’espace disponible, en portrait et paysage. Les notifications ont un aperçu compact ouvrant la liste au toucher. **Thème sombre** ouvre le réglage Android ; il est proposé quand Minimal OS est choisi comme HOME. Le thème des applications tierces dépend de leur prise en charge.
 
 ## Construire
 

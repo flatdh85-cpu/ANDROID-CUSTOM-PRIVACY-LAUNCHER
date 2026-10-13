@@ -1,6 +1,6 @@
 # Installation des applications — V9
 
-Au premier lancement de V9, l’assistant propose **Installer / reprendre**. Le même écran reste accessible sur l’accueil par **Applications et autorisations**.
+Au premier lancement de V9, l’assistant propose **Installer / reprendre**. Le même écran reste accessible sur l’accueil par **Applications**.
 
 Le parcours télécharge successivement les APK officielles compatibles, vérifie leur SHA-256, le package et l’empreinte du certificat, puis ouvre l’installateur Android. Chaque installation doit être confirmée dans Android ; l’auto-validation Panic ne s’applique jamais à l’installation ni à l’octroi de permissions. Android 8+ exige une autorisation de source pour Minimal OS ; Android 6 utilise son réglage global de sources inconnues. Minimal OS ne peut pas déclencher ces installations au seul moment où sa propre APK est installée : il faut ouvrir l’application.
 
@@ -24,4 +24,4 @@ L’assistant demande dès son premier affichage les permissions Android de loca
 
 La localisation est demandée conformément au choix utilisateur, mais le launcher ne lit ni ne transmet de position. Ces permissions ne sont pas accordées aux applications tierces, qui ont chacune leur propre parcours Android. L’accessibilité Panic et les confirmations de sa configuration restent inchangées et séparées. L’accès aux notifications se configure toujours depuis l’accueil. L’autorisation d’installer les APK n’est demandée qu’au lancement de l’installation.
 
-L’écran est accessible à nouveau par **Applications et autorisations** sur l’accueil.
+L’écran est accessible à nouveau par **Applications** sur l’accueil.

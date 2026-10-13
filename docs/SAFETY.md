@@ -17,3 +17,5 @@ Le debloat constructeur reste en simulation. Les permissions larges de lecture m
 V9 étend Panic aux fichiers du dossier public Téléchargements principal ; l’accès spécial aux fichiers sur Android 11+ reste manuel et son usage est limité dans le code. L’effacement du dossier ne supprime pas nécessairement les anciennes entrées du gestionnaire de téléchargement d’autres applications. Voir le périmètre précis dans [Panic](PANIC.md).
 
 L’assistant d’installation V9 utilise uniquement des APK officielles épinglées, dont le fichier, le package et le certificat sont contrôlés avant le passage à l’installateur Android. Pas d’installation silencieuse ni d’auto-validation des permissions. Aucun APK tiers n’est redistribué. L’autorisation d’installation de paquets et celle d’accès à tous les fichiers impliquent une revue des règles de distribution avant toute publication Play Store.
+
+Le raccourci Thème sombre ouvre uniquement les réglages Android : aucun changement privilégié de la configuration système, aucune promesse de thème imposé à toutes les applications.
