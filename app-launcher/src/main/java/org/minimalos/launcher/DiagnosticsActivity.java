@@ -69,7 +69,7 @@ public final class DiagnosticsActivity extends Activity {
         root.addView(appsTitle, headingParams);
 
         List<String> names = new ArrayList<>();
-        for (AppEntry entry : AppCatalog.entries()) names.add(entry.packageName());
+        for (AppEntry entry : AppCatalog.entries()) names.add(AppCatalog.resolvePackageName(this, entry));
         List<PackageState> states = new AndroidPackageInventory(this).inspect(names);
         for (int index = 0; index < states.size(); index++) {
             AppEntry entry = AppCatalog.entries().get(index);

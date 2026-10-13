@@ -1,33 +1,13 @@
 # Architecture
 
-## Périmètre actuel — Phase 2
+## V3 — launcher, copie locale et Panic
 
-L'application est un APK HOME natif, sans WebView, télémétrie, service permanent ni accès réseau. Elle affiche une horloge, l'état batterie/réseau, six applications de communication, des raccourcis vers les réglages officiels et l'accès aux applications système photo, vidéo et galerie. Une application absente reste visible et produit un message explicite.
+`app-launcher` reste un APK HOME natif Android 5+ avec huit raccourcis, diagnostics, thème noir et blanc et accès aux applications système photo/vidéo/galerie. Le même APK installé sur deux téléphones contient un récepteur au premier plan, un client de synchronisation, un lecteur des copies reçues et une procédure Panic guidée. `core-device`, `core-profiles`, `core-journal`, `core-debloat` et `core-recovery` gardent le diagnostic et la simulation de débloat de V2. Aucun profil constructeur vérifié ni backend ADB/Shizuku de débloat n'est livré.
 
-## Modules
+`core-replication` réalise l'authentification du pair, le chiffrement de session, l'échange de manifestes, la copie A↔B par blocs, la reprise, la vérification SHA-256 et le reçu authentifié. `GalleryRepository` expose les images et vidéos de MediaStore ainsi que les copies reçues dans le stockage privé de l'application. Seules les copies terminées et vérifiées figurent dans le manifeste. Les suppressions locales ne sont jamais propagées à l'autre téléphone.
 
-- `app-launcher` : activité HOME, UI à faible coût, catalogue des six applications et diagnostics Android.
-- `core-device` : contrats `DeviceDetector` et `PackageInventory`, modèles sans dépendance Android.
-- `core-profiles` : schéma versionné, parseur validant et correspondance exacte fabricant/modèle/API/version/fingerprint. Aucun profil constructeur non vérifié n'est livré.
-- `core-journal` : journal persistant par trames, SHA-256, synchronisation disque, reprise après dernière écriture interrompue et export texte.
-- `core-debloat` : simulation depuis un profil exact, filtre indépendant des packages critiques et exécuteur audit-only.
-- `core-recovery` : préflight Panic qui bloque tant que launcher natif, journal, provenance des installations et réplication ne sont pas tous vérifiés.
-- `core-replication` : comparaison bidirectionnelle des manifestes, reçus taille/SHA-256/écriture durable et sélection abstraite du transport. Aucun accès radio n'est encore connecté.
+La planification Android `JobScheduler` demande une tentative après 10, 15, 20 ou 30 minutes, sans garantie d'exécution exacte. Le service de réception est lancé par l'utilisateur ; Android tente de le redémarrer après reboot si l'option est active. Le réseau est un Wi-Fi local ou hotspot déjà établi ; l'utilisateur saisit l'adresse IPv4 privée et le code partagé. Aucun canal radio, groupe Wi-Fi Direct ou pair Bluetooth n'est choisi par l'application.
 
-Les modules métier sont en Java pur afin de partager ultérieurement leurs tests entre variantes legacy et modern. L'APK actuel a `minSdk 21` (Android 5.0), `targetSdk 35` et emploie uniquement les API du framework.
+Panic propose successivement la désinstallation des applications de communication reconnues, une synchronisation complète, l'effacement de la galerie via les confirmations Android, la désinstallation de Shizuku/Canta, puis celle de Minimal OS. La galerie n'est proposée à l'effacement qu'après preuve que chaque contenu encore présent existe sur le pair. Les refus et les erreurs arrêtent la procédure. Les données internes des messageries ne sont pas couvertes par la copie. Le launcher constructeur et les composants système ne sont jamais visés.
 
-## Flux du launcher
-
-1. Android lance `MainActivity` après choix explicite de l'utilisateur dans le sélecteur HOME.
-2. `AndroidDeviceDetector` lit fabricant, modèle, API et fingerprint ; `AndroidPackageInventory` interroge uniquement les six packages déclarés dans `<queries>`.
-3. Les tuiles disponibles lancent l'intent public du package. Les tuiles absentes affichent « non installée » ; aucune source APK n'est devinée.
-4. Les diagnostics inventorient les packages visibles, cherchent un profil exact, simulent un plan et écrivent un événement durable exportable.
-5. L'exécuteur et le Panic restent inactifs. Leur activation nécessite les phases dédiées, une provenance complète et les confirmations Android.
-
-## Décisions de sécurité
-
-La Phase 2 ne demande ni root, ni Shizuku, ni permission de modification de packages. Elle ne possède aucun backend ADB et ne modifie aucun package. `QUERY_ALL_PACKAGES` sert uniquement à l'inventaire local ; cette permission limite une éventuelle publication Play Store et devra être justifiée ou remplacée par un flux ADB/Shizuku. La sélection HOME, photo, vidéo, galerie et réglages passent par des intents Android officiels.
-
-## Extensions prévues
-
-Les modules d'intégration Shizuku, dépôt APK, compagnon de récupération, caméra privée, coffre et réplication seront ajoutés dans leurs phases respectives. Le transport préparé pour les foules denses est décrit dans [TRANSFER_PROTOCOL.md](TRANSFER_PROTOCOL.md). Ces composants ne doivent pas rendre le launcher indispensable au stockage des médias ni contourner les confirmations du système.
+La V3 est compilée et testée automatiquement, mais les parcours Android réels dépendent des permissions, du firmware et du réseau : voir [PHONE_PAIRING.md](PHONE_PAIRING.md) et [TEST_PLAN.md](TEST_PLAN.md).

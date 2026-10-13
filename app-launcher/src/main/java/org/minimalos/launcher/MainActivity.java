@@ -29,9 +29,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.minimalos.device.PackageState;
-import org.minimalos.recovery.PanicPreflight;
-import org.minimalos.recovery.PhaseTwoRedButtonCoordinator;
-import org.minimalos.recovery.RecoveryStatus;
 
 public final class MainActivity extends Activity {
     private final List<AppTile> tiles = new ArrayList<>();
@@ -126,20 +123,18 @@ public final class MainActivity extends Activity {
         chooseHome.setOnClickListener(view -> openSettings(Settings.ACTION_HOME_SETTINGS));
         root.addView(chooseHome, Ui.matchWrap());
 
-        Button panic = Ui.button(this, getString(R.string.panic_preflight));
+        Button sync = Ui.button(this, "Copie entre téléphones");
+        sync.setOnClickListener(view -> startActivity(new Intent(this, SyncActivity.class)));
+        root.addView(sync, Ui.matchWrap());
+
+        Button panic = Ui.button(this, "Panic — maintenir");
         panic.setOnClickListener(view -> new AlertDialog.Builder(this)
                 .setTitle(R.string.panic_title)
-                .setMessage(R.string.panic_tap_message)
+                .setMessage("Maintenez le bouton pour ouvrir la procédure Panic et ses confirmations Android.")
                 .setPositiveButton(R.string.understood, null)
                 .show());
         panic.setOnLongClickListener(view -> {
-            RecoveryStatus status = new PhaseTwoRedButtonCoordinator(
-                    new PanicPreflight(true, true, false, false)).prepareExit();
-            new AlertDialog.Builder(this)
-                    .setTitle(R.string.panic_title)
-                    .setMessage(status.message())
-                    .setPositiveButton(R.string.understood, null)
-                    .show();
+            startActivity(new Intent(this, PanicActivity.class));
             return true;
         });
         root.addView(panic, Ui.matchWrap());
@@ -187,11 +182,11 @@ public final class MainActivity extends Activity {
                 getString(isConnected() ? R.string.network_connected : R.string.network_disconnected)));
 
         List<String> names = new ArrayList<>();
-        for (AppEntry entry : AppCatalog.entries()) names.add(entry.packageName());
+        for (AppEntry entry : AppCatalog.entries()) names.add(AppCatalog.resolvePackageName(this, entry));
         List<PackageState> states = new AndroidPackageInventory(this).inspect(names);
         Map<String, PackageState> byName = new HashMap<>();
         for (PackageState item : states) byName.put(item.packageName(), item);
-        for (AppTile tile : tiles) tile.setPackageState(byName.get(tile.entry.packageName()));
+        for (AppTile tile : tiles) tile.setPackageState(byName.get(AppCatalog.resolvePackageName(this, tile.entry)));
     }
 
     private int batteryPercent() {
@@ -219,7 +214,7 @@ public final class MainActivity extends Activity {
                     .show();
             return;
         }
-        Intent intent = getPackageManager().getLaunchIntentForPackage(entry.packageName());
+        Intent intent = getPackageManager().getLaunchIntentForPackage(state.packageName());
         if (intent == null || !state.enabled()) {
             Toast.makeText(this, getString(R.string.cannot_open, entry.label()), Toast.LENGTH_SHORT).show();
             return;

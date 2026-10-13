@@ -6,8 +6,8 @@ import java.util.Set;
 import org.junit.Test;
 
 public class AppCatalogTest {
-    @Test public void exposesExactlySixUniquePackages() {
-        assertEquals(6, AppCatalog.entries().size());
+    @Test public void exposesEightUniquePackages() {
+        assertEquals(8, AppCatalog.entries().size());
         Set<String> packages = new HashSet<>();
         for (AppEntry entry : AppCatalog.entries()) {
             assertFalse(entry.label().trim().isEmpty());

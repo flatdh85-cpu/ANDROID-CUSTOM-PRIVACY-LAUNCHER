@@ -1,33 +1,21 @@
 # Backlog priorisé
 
-## P0 — Phase 1
+## Réalisé dans V1–V3
 
-- Compiler l'APK HOME Android 5+ et ses tests.
-- Afficher six tuiles avec état présent/absent et fallback sûr.
-- Afficher diagnostics locaux et raccourcis vers réglages officiels.
-- Valider sélection HOME, accessibilité, petite résolution et PSS sur appareils physiques.
+- Launcher HOME Android 5+, huit raccourcis, thème noir et blanc, diagnostics, photo/vidéo/galerie système.
+- Profils exacts, audit complet, simulation de debloat, journal persistant et export.
+- Copie A↔B chiffrée sur Wi-Fi local/hotspot avec reçu SHA-256, reprise par blocs et copies privées consultables.
+- Tentatives périodiques configurables 10/15/20/30 minutes, réception au premier plan et Panic guidé.
 
-## P1 — Audit et restauration fiable (Phase 2 en cours)
+## Priorité immédiate
 
-- Schéma versionné de profils avec correspondance exacte et `unknown = no-op` — implémenté.
-- Inventaire complet, plan audit-only visible, journal persistant et export de récupération — implémenté, tests appareil requis.
-- Protections explicites des packages critiques et tests de dernière écriture interrompue — implémentés.
-- Compagnon de récupération indépendant avant toute capacité de modification.
+- Exécuter tous les essais [sur deux téléphones](TEST_PLAN.md), corriger les écarts de permissions et de services selon les modèles.
+- Rendre l'adresse du pair robuste aux changements de réseau : découverte authentifiée ou QR, reconnexion et journal visible des dernières copies.
+- Ajouter le Wi-Fi Direct et, si utile, Bluetooth LE pour la découverte, sans promesse de canal garanti.
+- Permettre un export explicite des copies privées et tester la lecture des formats vidéo utilisés sur les appareils cibles.
 
-## P2 — Debloat contrôlé et Red Button
+## Extensions distinctes
 
-- Outil ADB legacy dry-run, puis backend Shizuku optionnel selon compatibilité.
-- Modifications une par une, confirmations, tests par lots et rollback vérifié.
-- Retour au HOME natif, désinstallations guidées et Minimal OS en dernier.
-
-## P3 — Dépôt APK
-
-- Manifeste signé, HTTPS, contrôle SDK/ABI/SHA-256/certificat et installation système confirmée.
-- Publication Synology DSM 6 et mode LAN HTTP uniquement sur consentement explicite.
-
-## P4 — Caméra, coffre et réplication
-
-- Caméra et coffre privé chiffré après restauration fiable.
-- Noyau de comparaison cumulative A↔B, reçus et choix abstrait du transport — commencé en Phase 2, sans accès radio.
-- Transfert chiffré A→B, puis connexion du noyau de réplication sans suppression propagée.
-- Reprise, déclencheur périodique approximatif, Panic prioritaire et tests sur deux appareils.
+- Caméra et coffre privés chiffrés, indépendants du launcher, après validation du parcours de restauration.
+- Outil ADB legacy puis Shizuku optionnel pour debloat contrôlé sur profils constructeur vérifiés, avec tests de récupération.
+- Dépôt APK Synology signé, contrôle de compatibilité, intégrité et certificats.

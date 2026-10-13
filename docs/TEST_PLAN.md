@@ -1,27 +1,16 @@
 # Plan de test
 
-## Automatisé en Phase 2
+## Automatisé
 
-- catalogue : six entrées, identifiants de package uniques et non vides ;
-- inventaire : état installé/activé représenté sans action système ;
-- profil absent : correspondance non exacte ;
-- planificateur audit-only : aucune modification proposée ;
-- exécuteur audit-only : aucune commande exécutée et refus d'un plan contenant des actions ;
-- journal mémoire : ordre et copie défensive des événements ;
-- coordinateur Red Button MVP : indisponible sans effet de bord ;
-- parseur de profil complet, rejet des schémas inconnus et correspondance exacte du fingerprint ;
-- simulation limitée aux candidats présents et blocage des packages critiques/launchers ;
-- journal disque relisible, exportable et tolérant une dernière trame interrompue ;
-- préflight Panic sans suppression, même lorsque ses prérequis déclaratifs sont satisfaits ;
-- plan de réplication A↔B, retransmission d'une copie supprimée localement, reçu durable et refus de Bluetooth seul pour une vidéo ;
-- compilation, ressources Android et lint du launcher.
+Les modules Java vérifient l'inventaire, les profils exacts, la protection des packages critiques, le journal persistant, la simulation de debloat et les décisions de réplication. Les tests de socket locaux couvrent la copie A↔B de quatre contenus, la récupération d'une copie supprimée localement sans propagation, le refus d'un mauvais code et la reprise d'une vidéo à une frontière de bloc. La compilation Android et lint vérifient les ressources, le manifeste et les appels d'API. Ces tests ne représentent pas des téléphones réels.
 
-## À exécuter sur émulateur ou appareil
+## Obligatoire sur deux téléphones avant usage réel
 
-Installer l'APK, choisir HOME via Android, redémarrer et vérifier navigation tactile/D-pad, contraste noir et blanc, petites résolutions, horloge, batterie, réseau et ouverture des réglages. Tester chaque tuile avec application présente puis absente. Vérifier les boutons photo, vidéo et galerie, l'inventaire, l'export du journal et le refus du préflight Panic. Vérifier appel/SMS/LTE/APN/Wi-Fi/Bluetooth/GPS/clavier/notifications avant et après sélection HOME.
+1. Installer le même APK V3 sur A et B ; vérifier les huit raccourcis, photo, vidéo, galerie, les permissions média complètes, le thème, HOME et le launcher constructeur.
+2. Faire l'essai A1/A2 sur A et B1/B2 sur B décrit dans [PHONE_PAIRING.md](PHONE_PAIRING.md). Vérifier lecture et SHA-256 identiques sur les deux téléphones, originaux toujours présents.
+3. Tester Wi-Fi partagé puis hotspot, changement d'adresse IP, perte du réseau au milieu d'une vidéo, reprise, stockage plein, mauvais code et permissions refusées. Aucun échec ne doit afficher « copie vérifiée ».
+4. Tester les quatre intervalles 10/15/20/30 minutes, téléphone verrouillé, redémarrage, restrictions batterie et fermeture forcée. Mesurer les retards réels ; la cadence Android n'est pas garantie.
+5. Sur un téléphone secondaire rempli de médias de test uniquement, lancer Panic : confirmer chaque désinstallation, la copie, la suppression de galerie et le retour au launcher natif. Tester l'annulation de chaque étape, le pair absent, une galerie modifiée pendant la copie et la reprise après interruption. Vérifier que l'autre téléphone conserve les copies.
+6. Répéter selon les versions disponibles : Android 5/6/7, Android 10 EMUI, Android 11+, Samsung et Xiaomi. Mesurer PSS, batterie et durée des vidéos volumineuses. Vérifier appels, SMS, réseau mobile, Wi-Fi, Bluetooth, GPS, clavier et notifications avant/après.
 
-Mesurer démarrage à froid, PSS au repos et batterie sur Wiko Lenny 3 et Huawei P30 Lite. Tester les firmwares Samsung et Xiaomi séparément. Aucun de ces tests physiques n'est considéré comme exécuté par la compilation cloud.
-
-## Phases ultérieures
-
-Ajouter tests de profils exacts, packages critiques, journal durable, reprise après crash, rollback, manifeste/signatures APK, pannes Shizuku/ADB et Red Button interrompu. La caméra/réplication exigera deux appareils et vérifiera les SHA-256, la reprise, le stockage saturé et l'absence de propagation des suppressions.
+Aucun essai physique n'a été exécuté dans l'environnement cloud de cette livraison.

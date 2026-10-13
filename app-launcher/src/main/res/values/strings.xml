@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Minimal OS</string>
-    <string name="home_subtitle">Communication essentielle · Phase 2 audit</string>
+    <string name="home_subtitle">Communication essentielle · Copie locale</string>
     <string name="not_installed">Non installée</string>
     <string name="disabled">Désactivée</string>
     <string name="available">Disponible</string>
@@ -44,8 +44,6 @@
     <string name="export_journal_title">Journal Minimal OS</string>
     <string name="journal_empty">Le journal d’audit est vide.</string>
     <string name="audit_failed">Audit impossible : %1$s</string>
-    <string name="panic_preflight">Panic — préflight</string>
-    <string name="panic_tap_message">Maintenez ce bouton pour vérifier les prérequis. La Phase 2 ne supprime aucune application.</string>
     <string name="panic_title">Préflight Panic</string>
     <string name="understood">Compris</string>
     <string name="back">Retour</string>
